@@ -66,12 +66,6 @@ cd private-join-and-compute
 bazel build :all
 ```
 
-If you get an error, you may need to build with the following flags:
-
-```bash
-bazel build :all --incompatible_disable_deprecated_attr_params=false --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false --incompatible_no_support_tools_in_action_inputs=false
-```
-
 (All the following instructions must be run from inside the
 private-join-and-compute folder.)
 
@@ -84,7 +78,7 @@ bazel-bin/generate_dummy_data --server_data_file=/tmp/dummy_server_data.csv \
 
 This will create dummy data for the server and client at the specified
 locations. You can look at the files in `/tmp/dummy_server_data.csv` and
-`/tmp/dummy_server_data.csv` to see the dummy data that was generated. You can
+`/tmp/dummy_client_data.csv` to see the dummy data that was generated. You can
 also change the size of the dummy data generated using additional flags. For
 example:
 

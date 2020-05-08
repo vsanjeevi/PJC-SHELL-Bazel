@@ -60,11 +60,8 @@
 
 #include "crypto/big_num.h"
 #include "crypto/context.h"
-
-namespace util {
-template <typename T>
-class StatusOr;
-}  // namespace util
+#include "crypto/paillier.pb.h"
+#include "util/status.inc"
 
 namespace private_join_and_compute {
 
@@ -78,17 +75,19 @@ class PrimeCryptoWithRand;
 class FixedBaseExp;
 class TwoModulusCrt;
 
-// Forward declaration of Paillier zero knowledge proof class.
-namespace internal {
-class PaillierOrZkpe;
-}  // namespace internal
-
 // Holds the resulting ciphertext from a Paillier encryption as well as the
 // random number used.
 struct PaillierEncAndRand {
   BigNum ciphertext;
   BigNum rand;
 };
+
+// Returns a Paillier public key and private key. The Paillier modulus n will be
+// generated to be the product of safe primes p and q, each of modulus_length/2
+// bits. "s" is the Damgard-Jurik parameter: the corresponding message space is
+// n^s, and the ciphertext space is n^(s+1).
+StatusOr<std::pair<PaillierPublicKey, PaillierPrivateKey>>
+GeneratePaillierKeyPair(Context* ctx, int32_t modulus_length, int32_t s);
 
 // The class defining Damgaard-Jurik cryptosystem operations that can be
 // performed with the public key.
@@ -114,6 +113,9 @@ class PublicPaillier {
   // n is the plaintext size and n^2 is the ciphertext size.
   PublicPaillier(Context* ctx, const BigNum& n);
 
+  // Creates a PublicPaillier from the given proto.
+  PublicPaillier(Context* ctx, const PaillierPublicKey& public_key_proto);
+
   // PublicPaillier is neither copyable nor movable.
   PublicPaillier(const PublicPaillier&) = delete;
   PublicPaillier& operator=(const PublicPaillier&) = delete;
@@ -137,7 +139,7 @@ class PublicPaillier {
   // (1+n)^message * g^random mod n^(s+1), where g is the generator chosen
   // during setup.
   // Returns INVALID_ARGUMENT status when the message is < 0 or >= n^s.
-  util::StatusOr<BigNum> Encrypt(const BigNum& message) const;
+  StatusOr<BigNum> Encrypt(const BigNum& message) const;
 
   // Encrypts the message similar to Encrypt, but uses a provided random
   // value. It uses the generator g for a subgroup of n^s-th residues to speed
@@ -146,8 +148,8 @@ class PublicPaillier {
   // Returns INVALID_ARGUMENT if rand is not less than or equal to n.
   // Assumes the message is already in the right range.
   // It is the caller's responsibility to ensure the randomness of rand.
-  util::StatusOr<BigNum> EncryptUsingGeneratorAndRand(const BigNum& message,
-                                                      const BigNum& rand) const;
+  StatusOr<BigNum> EncryptUsingGeneratorAndRand(const BigNum& message,
+                                                const BigNum& rand) const;
 
   // Encrypts the message similar to Encrypt, but uses a provided random
   // value. It computes the ciphertext directly (without the generator), as
@@ -156,14 +158,16 @@ class PublicPaillier {
   // Returns INVALID_ARGUMENT if rand is not in Zn*.
   // Assumes the message is already in the right range.
   // It is the caller's responsibility to ensure the randomness of rand.
-  util::StatusOr<BigNum> EncryptWithRand(const BigNum& message,
-                                         const BigNum& rand) const;
+  StatusOr<BigNum> EncryptWithRand(const BigNum& message,
+                                   const BigNum& rand) const;
 
   // Encrypts the message by generating a random number and using
   // EncryptWithRand, additionally retaining the random number used and
   // returning it with the ciphertext.
-  util::StatusOr<PaillierEncAndRand> EncryptAndGetRand(
-      const BigNum& message) const;
+  StatusOr<PaillierEncAndRand> EncryptAndGetRand(const BigNum& message) const;
+
+  const BigNum& n() const { return n_; }
+  int s() const { return s_; }
 
  private:
   // Factory class for creating BigNums and holding the temporary values for
@@ -215,6 +219,9 @@ class PrivatePaillier {
   // (i.e., s = 1)
   PrivatePaillier(Context* ctx, const BigNum& p, const BigNum& q);
 
+  // Creates a PrivatePaillier from the supplied key proto.
+  PrivatePaillier(Context* ctx, const PaillierPrivateKey& private_key_proto);
+
   // PrivatePaillier is neither copyable nor movable.
   PrivatePaillier(const PrivatePaillier&) = delete;
   PrivatePaillier& operator=(const PrivatePaillier&) = delete;
@@ -235,7 +242,7 @@ class PrivatePaillier {
   //    relatively to the used method effectiveness.
   //
   // Returns INVALID_ARGUMENT status when the message is < 0 or >= n^s.
-  util::StatusOr<BigNum> Encrypt(const BigNum& message) const;
+  StatusOr<BigNum> Encrypt(const BigNum& message) const;
 
   // Decrypts the ciphertext and returns the message inside as a BigNum.
   // Uses the algorithm from the Theorem 1 in Damgaard-Jurik-Nielsen paper.
@@ -243,7 +250,7 @@ class PrivatePaillier {
   // part separately and then combining them together with the Chinese Remainder
   // Theorem.
   // Returns INVALID_ARGUMENT status when the ciphertext is < 0 or >= n^(s+1).
-  util::StatusOr<BigNum> Decrypt(const BigNum& ciphertext) const;
+  StatusOr<BigNum> Decrypt(const BigNum& ciphertext) const;
 
  private:
   friend class PrivatePaillierWithRand;
@@ -280,7 +287,7 @@ class PrivatePaillierWithRand {
   ~PrivatePaillierWithRand();
 
   // Encrypt with the underlying PrivatePaillier.
-  util::StatusOr<BigNum> Encrypt(const BigNum& message) const;
+  StatusOr<BigNum> Encrypt(const BigNum& message) const;
 
   // Encrypts and returns the random used in the encryption.
   // Internally two random numbers are used which must be combined with a crt
@@ -289,11 +296,10 @@ class PrivatePaillierWithRand {
   // crt((g_p^r1)^(n^s), (g_q^r2)^(n^s)) = r^(n^s) where crt coprimes are
   // p^(s+1) and q^(s+1). This can be rewritten as
   // crt(g_p^r1, g_q^r2) = r where crt coprimes are p and q.
-  util::StatusOr<PaillierEncAndRand> EncryptAndGetRand(
-      const BigNum& message) const;
+  StatusOr<PaillierEncAndRand> EncryptAndGetRand(const BigNum& message) const;
 
   // Decrypt with the underlying PrivatePaillier.
-  util::StatusOr<BigNum> Decrypt(const BigNum& ciphertext) const;
+  StatusOr<BigNum> Decrypt(const BigNum& ciphertext) const;
 
  private:
   Context* const ctx_;
@@ -311,4 +317,3 @@ class PrivatePaillierWithRand {
 }  // namespace private_join_and_compute
 
 #endif  // CRYPTO_PAILLIER_H_
-

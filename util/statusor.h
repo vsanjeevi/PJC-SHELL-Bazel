@@ -28,7 +28,7 @@
 //
 //  StatusOr<float> result = DoBigCalculationThatCouldFail();
 //  if (result.ok()) {
-//    float answer = result.ValueOrDie();
+//    float answer = result.value();
 //    printf("Big calculation yielded: %f", answer);
 //  } else {
 //    LOG(ERROR) << result.status();
@@ -38,7 +38,7 @@
 //
 //  StatusOr<Foo*> result = FooFactory::MakeNewFoo(arg);
 //  if (result.ok()) {
-//    std::unique_ptr<Foo> foo(result.ValueOrDie());
+//    std::unique_ptr<Foo> foo(result.value());
 //    foo->DoSomethingCool();
 //  } else {
 //    LOG(ERROR) << result.status();
@@ -48,7 +48,7 @@
 //
 //  StatusOr<std::unique_ptr<Foo>> result = FooFactory::MakeNewFoo(arg);
 //  if (result.ok()) {
-//    std::unique_ptr<Foo> foo = std::move(result.ValueOrDie());
+//    std::unique_ptr<Foo> foo = std::move(result.value());
 //    foo->DoSomethingCool();
 //  } else {
 //    LOG(ERROR) << result.status();
@@ -58,7 +58,7 @@
 //
 //  StatusOr<Foo*> FooFactory::MakeNewFoo(int arg) {
 //    if (arg <= 0) {
-//      return ::util::Status(::util::error::INVALID_ARGUMENT,
+//      return Status(::private_join_and_compute::StatusCode::kInvalidArgument,
 //                            "Arg must be positive");
 //    } else {
 //      return new Foo(arg);
@@ -74,9 +74,8 @@
 #include <utility>
 
 #include "util/status.h"  // IWYU pragma: export  // for Status
-#include "util/status_builder.h"
 
-namespace util {
+namespace private_join_and_compute {
 
   template <typename T>
   class StatusOr {
@@ -85,7 +84,7 @@ namespace util {
   StatusOr();
 
   // Construct a new StatusOr with the given non-ok status. After calling
-  // this constructor, calls to ValueOrDie() will CHECK-fail.
+  // this constructor, calls to value() will CHECK-fail.
   //
   // NOTE: Not explicit - we want to use StatusOr<T> as a return
   // value, so it is convenient and sensible to be able to do 'return
@@ -95,12 +94,10 @@ namespace util {
   // In optimized builds, passing Status::OK here will have the effect
   // of passing PosixErrorSpace::EINVAL as a fallback.
   StatusOr(const Status& status);  // NOLINT - no explicit
-  StatusOr(StatusBuilder status)   // NOLINT
-      : StatusOr(static_cast<Status>(std::move(status))) {}
 
   // Construct a new StatusOr with the given value. If T is a plain pointer,
   // value must not be NULL. After calling this constructor, calls to
-  // ValueOrDie() will succeed, and calls to status() will return OK.
+  // value() will succeed, and calls to status() will return OK.
   //
   // NOTE: Not explicit - we want to use StatusOr<T> as a return type
   // so it is convenient and sensible to be able to do 'return T()'
@@ -108,7 +105,7 @@ namespace util {
   //
   // REQUIRES: if T is a plain pointer, value != NULL. This requirement is
   // DCHECKed. In optimized builds, passing a NULL pointer here will have
-  // the effect of passing ::util::error::INTERNAL as a fallback.
+  // the effect of passing ::private_join_and_compute::StatusCode::kInternal as a fallback.
   StatusOr(const T& value);  // NOLINT - no explicit
 
   // Copy constructor.
@@ -127,18 +124,16 @@ namespace util {
 
   // Returns a reference to our status. If this contains a T, then
   // returns Status::OK.
-  const util::Status& status() const;
+  const Status& status() const;
 
   // Returns this->status().ok()
   bool ok() const;
 
   // Returns a reference to our current value, or CHECK-fails if !this->ok().
-  const T& ValueOrDie() const;
-  T& ValueOrDie();
-
-  // Moves our current value out of this object and returns it, or CHECK-fails
-  // if !this->ok().
-  T ConsumeValueOrDie() { return std::move(ValueOrDie()); }
+  const T& value() const&;
+  T& value() &;
+  const T&& value() const&&;
+  T&& value() &&;
 
   // Ignores any errors. This method does nothing except potentially suppress
   // complaints from any tools that are checking that errors are not dropped on
@@ -159,9 +154,9 @@ namespace internal {
 class StatusOrHelper {
  public:
   // Move type-agnostic error handling to the .cc.
-  static ::util::Status HandleInvalidStatusCtorArg();
-  static ::util::Status HandleNullObjectCtorArg();
-  static void Crash(const ::util::Status& status);
+  static Status HandleInvalidStatusCtorArg();
+  static Status HandleNullObjectCtorArg();
+  static void Crash(const Status& status);
 
   // Customized behavior for StatusOr<T> vs. StatusOr<T*>
   template <typename T>
@@ -231,7 +226,7 @@ inline bool StatusOr<T>::ok() const {
 }
 
 template <typename T>
-inline const T& StatusOr<T>::ValueOrDie() const {
+inline const T& StatusOr<T>::value() const& {
   if (value_ == nullptr) {
     internal::StatusOrHelper::Crash(status());
   }
@@ -239,13 +234,29 @@ inline const T& StatusOr<T>::ValueOrDie() const {
 }
 
 template <typename T>
-inline T& StatusOr<T>::ValueOrDie() {
+inline T& StatusOr<T>::value() & {
   if (value_ == nullptr) {
     internal::StatusOrHelper::Crash(status());
   }
   return *value_;
 }
 
-}  // namespace util
+template <typename T>
+inline const T&& StatusOr<T>::value() const&& {
+  if (value_ == nullptr) {
+    internal::StatusOrHelper::Crash(status());
+  }
+  return std::move(*value_);
+}
+
+template <typename T>
+inline T&& StatusOr<T>::value() && {
+  if (value_ == nullptr) {
+    internal::StatusOrHelper::Crash(status());
+  }
+  return std::move(*value_);
+}
+
+}  // namespace private_join_and_compute
 
 #endif  // UTIL_STATUSOR_H_

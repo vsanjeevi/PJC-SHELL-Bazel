@@ -24,11 +24,7 @@
 #include "crypto/context.h"
 #include "crypto/ec_group.h"
 #include "crypto/ec_point.h"
-
-namespace util {
-template <typename T>
-class StatusOr;
-}  // namespace util
+#include "util/status.inc"
 
 namespace private_join_and_compute {
 
@@ -49,21 +45,24 @@ namespace private_join_and_compute {
 // This class is not thread-safe.
 //
 // Security: The provided bit security is half the number of bits of the
-//  underlying curve. For example, using curve NID_secp224r1 gives 112 bit
-//  security.
+//  underlying curve. For example, using curve NID_X9_62_prime256v1 gives 128
+//  bit security.
 //
 // Example: To generate a cipher with a new private key for the named curve
-//    NID_secp224r1. The key can be securely stored and reused.
+//    NID_X9_62_prime256v1. The key can be securely stored and reused.
 //    #include <openssl/obj_mac.h>
 //    std::unique_ptr<ECCommutativeCipher> cipher =
-//        ECCommutativeCipher::CreateWithNewKey(NID_secp224r1);
+//        ECCommutativeCipher::CreateWithNewKey(
+//            NID_X9_62_prime256v1, ECCommutativeCipher::HashType::SHA256);
 //    string key_bytes = cipher->GetPrivateKeyBytes();
 //
 //  Example: To generate a cipher with an existing private key for the named
-//    curve NID_secp224r1.
+//    curve NID_X9_62_prime256v1.
 //    #include <openssl/obj_mac.h>
 //    std::unique_ptr<ECCommutativeCipher> cipher =
-//        ECCommutativeCipher::CreateFromKey(NID_secp224r1, key_bytes);
+//        ECCommutativeCipher::CreateFromKey(
+//            NID_X9_62_prime256v1, key_bytes,
+//            ECCommutativeCipher::HashType::SHA256);
 //
 // Example: To encrypt a message using a std::unique_ptr<ECCommutativeCipher>
 //    cipher generated as above.
@@ -71,22 +70,31 @@ namespace private_join_and_compute {
 //
 // Example: To re-encrypt a message already encrypted by another party using a
 //    std::unique_ptr<ECCommutativeCipher> cipher generated as above.
-//    StatusOr<string> double_encrypted_string =
+//    ::private_join_and_compute::StatusOr<string> double_encrypted_string =
 //        cipher->ReEncrypt(encrypted_string);
 //
 // Example: To decrypt a message that has already been encrypted by the same
 //    party using a std::unique_ptr<ECCommutativeCipher> cipher generated as
 //    above.
-//    StatusOr<string> decrypted_string =
+//    ::private_join_and_compute::StatusOr<string> decrypted_string =
 //        cipher->Decrypt(encrypted_string);
 //
 // Example: To re-encrypt a message that has already been encrypted using a
 // std::unique_ptr<CommutativeElGamal> ElGamal key:
-//    StatusOr<std::pair<string, string>> double_encrypted_string =
+//    ::private_join_and_compute::StatusOr<std::pair<string, string>> double_encrypted_string =
 //        cipher->ReEncryptElGamalCiphertext(elgamal_ciphertext);
 
 class ECCommutativeCipher {
  public:
+  // The hash function used by the ECCommutativeCipher.
+  enum HashType {
+    SHA256,
+    SHA512,
+  };
+
+  // Check for valid HashType.
+  static bool ValidateHashType(HashType hash_type);
+
   // ECCommutativeCipher is neither copyable nor assignable.
   ECCommutativeCipher(const ECCommutativeCipher&) = delete;
   ECCommutativeCipher& operator=(const ECCommutativeCipher&) = delete;
@@ -96,8 +104,8 @@ class ECCommutativeCipher {
   // be refreshed.
   // Returns INVALID_ARGUMENT status instead if the curve_id is not valid
   // or INTERNAL status when crypto operations are not successful.
-  static util::StatusOr<std::unique_ptr<ECCommutativeCipher>> CreateWithNewKey(
-      int curve_id);
+  static ::private_join_and_compute::StatusOr<std::unique_ptr<ECCommutativeCipher>>
+  CreateWithNewKey(int curve_id, HashType hash_type);
 
   // Creates an ECCommutativeCipher object with the given private key.
   // A new key should be created for each session and all values should be
@@ -107,8 +115,8 @@ class ECCommutativeCipher {
   // Returns INVALID_ARGUMENT status instead if the private_key is not valid for
   // the given curve or the curve_id is not valid.
   // Returns INTERNAL status when crypto operations are not successful.
-  static util::StatusOr<std::unique_ptr<ECCommutativeCipher>> CreateFromKey(
-      int curve_id, const std::string& key_bytes);
+  static ::private_join_and_compute::StatusOr<std::unique_ptr<ECCommutativeCipher>>
+  CreateFromKey(int curve_id, const std::string& key_bytes, HashType hash_type);
 
   // Encrypts a string with the private key to a point on the elliptic curve.
   //
@@ -119,7 +127,9 @@ class ECCommutativeCipher {
   // ANSI X9.62 ECDSA.
   //
   // Returns an INVALID_ARGUMENT error code if an error occurs.
-  util::StatusOr<std::string> Encrypt(const std::string& plaintext) const;
+  //
+  // This method is not threadsafe.
+  ::private_join_and_compute::StatusOr<std::string> Encrypt(const std::string& plaintext);
 
   // Encrypts an encoded point with the private key.
   //
@@ -130,7 +140,9 @@ class ECCommutativeCipher {
   //
   // This method can also be used to encrypt a value that has already been
   // hashed to the curve.
-  util::StatusOr<std::string> ReEncrypt(const std::string& ciphertext) const;
+  //
+  // This method is not threadsafe.
+  ::private_join_and_compute::StatusOr<std::string> ReEncrypt(const std::string& ciphertext);
 
   // Encrypts an ElGamal ciphertext with the private key.
   //
@@ -138,9 +150,11 @@ class ECCommutativeCipher {
   // of an ElGamal ciphertext on this curve as defined in ANSI X9.62 ECDSA.
   //
   // The result is another ElGamal ciphertext, encoded in compressed form.
-  util::StatusOr<std::pair<std::string, std::string>>
+  //
+  // This method is not threadsafe.
+  ::private_join_and_compute::StatusOr<std::pair<std::string, std::string>>
   ReEncryptElGamalCiphertext(
-      const std::pair<std::string, std::string>& elgamal_ciphertext) const;
+      const std::pair<std::string, std::string>& elgamal_ciphertext);
 
   // Decrypts an encoded point with the private key.
   //
@@ -155,7 +169,22 @@ class ECCommutativeCipher {
   // If the input point was single encrypted with this key, then the result
   // point is the original, unencrypted point. Note that this will not reverse
   // hashing to the curve.
-  util::StatusOr<std::string> Decrypt(const std::string& ciphertext) const;
+  //
+  // This method is not threadsafe.
+  ::private_join_and_compute::StatusOr<std::string> Decrypt(const std::string& ciphertext);
+
+  // Hashes a string to a point on the elliptic curve using the
+  // "try-and-increment" method.
+  // See Section 5.2 of https://crypto.stanford.edu/~dabo/papers/bfibe.pdf.
+  //
+  // The resulting point is returned encoded in compressed form as defined in
+  // ANSI X9.62 ECDSA.
+  //
+  // Returns an INVALID_ARGUMENT error code if an error occurs.
+  //
+  // This method is not threadsafe.
+  ::private_join_and_compute::StatusOr<std::string> HashToTheCurve(
+      const std::string& plaintext);
 
   // Returns the private key bytes so the key can be stored and reused.
   std::string GetPrivateKeyBytes() const;
@@ -164,10 +193,14 @@ class ECCommutativeCipher {
   // Creates a new ECCommutativeCipher object with the given private key for
   // the given EC group.
   ECCommutativeCipher(std::unique_ptr<Context> context, ECGroup group,
-                      BigNum private_key);
+                      BigNum private_key, HashType hash_type);
 
   // Encrypts a point by multiplying the point with the private key.
-  util::StatusOr<ECPoint> Encrypt(const ECPoint& point) const;
+  ::private_join_and_compute::StatusOr<ECPoint> Encrypt(const ECPoint& point);
+
+  // Hashes a string to a point on the elliptic curve.
+  ::private_join_and_compute::StatusOr<ECPoint> HashToTheCurveInternal(
+      const std::string& plaintext);
 
   // Context used for storing temporary values to be reused across openssl
   // function calls for better performance.
@@ -181,6 +214,9 @@ class ECCommutativeCipher {
 
   // The private key inverse, used for decryption.
   const BigNum private_key_inverse_;
+
+  // The hash function used by the cipher.
+  const HashType hash_type_;
 };
 
 }  // namespace private_join_and_compute

@@ -17,16 +17,13 @@
 #define CRYPTO_BIG_NUM_H_
 
 #include <stdint.h>
+
 #include <memory>
 #include <string>
 
 #include "gflags/gflags_declare.h"
 #include "crypto/openssl.inc"
-
-namespace util {
-template <typename T>
-class StatusOr;
-}  // namespace util
+#include "util/status.inc"
 
 namespace private_join_and_compute {
 
@@ -35,7 +32,7 @@ namespace private_join_and_compute {
 // Makes use of a BN_CTX structure that holds temporary BIGNUMs needed for
 // arithmetic operations as dynamic memory allocation to create BIGNUMs is
 // expensive.
-class BigNum {
+class ABSL_MUST_USE_RESULT BigNum {
  public:
   // Deletes a BIGNUM.
   class BnDeleter {
@@ -58,7 +55,7 @@ class BigNum {
 
   // Converts this BigNum to a uint64_t value. Returns an INVALID_ARGUMENT
   // error code if the value of *this is larger than 64 bits.
-  util::StatusOr<uint64_t> ToIntValue() const;
+  StatusOr<uint64_t> ToIntValue() const;
 
   // Returns the bit length of this BigNum.
   int BitLength() const;
