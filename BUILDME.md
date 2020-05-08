@@ -27,14 +27,26 @@ Ref: https://docs.bazel.build/versions/master/tutorial/cpp.html
     + *Build file(s)* :
         + Instructions to build a project
         + *Package* : A subfolder that contains a build file
-+ Dependency graph
-    + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:generate_dummy_data)" --output graph
++ Query options
+    + Ref: https://docs.bazel.build/versions/master/query-how-to.html 
+    + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:generate_dummy_data)" --output graph > dep_gen_dummy_data.txt
+    + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:match_proto)" --output graph > dep_match_proto.txt
+
     + Graph view at : http://www.webgraphviz.com/
-    
+    + Local vizualization : 
+        + sudo apt install graphviz xdot
+        + xdot viewing says unexpected end of file
+    + xdot <(bazel query --notool_deps --noimplicit_deps "deps(//:match_proto)" --output graph)
+        + does not work!
+    + bazel query "deps(//:match_proto)" --incompatible_disable_deprecated_attr_params=false
+    + bazel query 'buildfiles(deps(//:match_proto))' --output package --incompatible_disable_deprecated_attr_params=false
+    + bazel query 'kind(match_proto,deps(//:match_proto))' --output package --incompatible_disable_deprecated_attr_params=false
 
 + Exploring build sequences
     + bazel build //:match_proto --incompatible_disable_deprecated_attr_params=false --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false --incompatible_no_support_tools_in_action_inputs=false
-    + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:match_proto)" --output graph
++ Exploring dependency visualization
+    + https://docs.bazel.build/versions/master/query-how-to.html 
+    + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:match_proto)" --output graph > graph
     + Graph view at : http://www.webgraphviz.com/
     
 ## External libraries used in Private-Join-and-Compute
@@ -61,3 +73,5 @@ Ref: https://docs.bazel.build/versions/master/tutorial/cpp.html
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 grpc_deps()
 
+# Debugging in VSCode
++ Ref: https://shanee.io/blog/2019/05/28/bazel-with-visual-studio-code/ 

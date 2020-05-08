@@ -1,4 +1,11 @@
-# Private Join and Compute
+# Notes:
+
+## State Model between Client & Server
+
+
+
+
+# Original: Private Join and Compute
 
 This project contains an implementation of the "Private Join and Compute"
 functionality. This functionality allows two users, each holding an input file,
