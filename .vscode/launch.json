@@ -10,10 +10,12 @@
             "preLaunchTask": "Build Server (Debug)",
             "type": "cppdbg",
             "request": "launch",
-            "args": [],
+            "args": [
+                "--server_data_file=/tmp/dummy_server_data.csv"
+                ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/bazel-out/k8-dbg/bin/example",
+            "program": "${workspaceFolder}/bazel-bin/server",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -30,10 +32,12 @@
             "preLaunchTask": "Build Client (Debug)",
             "type": "cppdbg",
             "request": "launch",
-            "args": [],
+            "args": [
+                "--client_data_file=/tmp/dummy_client_data.csv"
+                ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/bazel-out/k8-dbg/bin/example",
+            "program": "${workspaceFolder}/bazel-bin/client",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

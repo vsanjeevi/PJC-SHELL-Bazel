@@ -30,8 +30,25 @@ Ref: https://docs.bazel.build/versions/master/tutorial/cpp.html
 + Query options
     + Ref: https://docs.bazel.build/versions/master/query-how-to.html 
     + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:generate_dummy_data)" --output graph > dep_gen_dummy_data.txt
+
     + bazel query --noimplicit_deps --incompatible_disable_deprecated_attr_params=false "deps(//:match_proto)" --output graph > dep_match_proto.txt
 
+    + bazel query "deps(//:private_intersection_sum_proto)" --output graph > dep_pis_proto.txt
+
+    + bazel query "deps(//:private_join_and_compute_proto)" --output graph > dep_pjc_proto.txt
+    
+    + bazel query --noimplicit_deps "deps(//:protocol_client)" --output graph > dep_protocol_client.txt
+
+    + which rules are defined in package root?
+    + + bazel query 'kind(rule, //:*)' --output label_kind
+
+
+## https://docs.bazel.build/versions/master/query.html
+    + bazel query --noimplicit_deps "deps(//:protocol_client,3)" --output graph > dep_protocol_client_3.txt
+
+    + bazel query --noimplicit_deps "deps(//:client,4)" --output graph > dep_client_4.txt
+
+## Previous explorations
     + Graph view at : http://www.webgraphviz.com/
     + Local vizualization : 
         + sudo apt install graphviz xdot
@@ -75,3 +92,17 @@ grpc_deps()
 
 # Debugging in VSCode
 + Ref: https://shanee.io/blog/2019/05/28/bazel-with-visual-studio-code/ 
+
+# Syncing from Upstream
+
+
+https://wiki.paparazziuav.org/wiki/Github_manual_for_Ubuntu 
+https://www.youtube.com/watch?v=-zvHQXnBO6c Syncing Your GitHub Fork
+
+# Protobuff 2
+Ref: https://developers.google.com/protocol-buffers/docs/proto 
+
+
+# GitHub sync from Google Master
+https://wiki.paparazziuav.org/wiki/Github_manual_for_Ubuntu 
+https://www.youtube.com/watch?v=-zvHQXnBO6c Syncing Your GitHub Fork
