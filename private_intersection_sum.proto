@@ -51,8 +51,10 @@ message PrivateIntersectionSumServerMessage {
     optional EncryptedSet encrypted_set = 1;
   }
 
+  //YAR::Edit : Extending to two sums
   message ServerRoundTwo {
     optional int64 intersection_size = 1;
-    optional bytes encrypted_sum = 2;
+    optional bytes encrypted_sum_1 = 2;
+    optional bytes encrypted_sum_2 = 3;
   }
 }

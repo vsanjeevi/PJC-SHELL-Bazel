@@ -92,12 +92,19 @@ int ExecuteProtocol() {
       std::move(maybe_client_identifiers_and_associated_values.value());
 
   std::cout << "Client: Generating keys..." << std::endl;
-  //YAR::Edit --> ToDo : move from pair to tuple
+  //YAR::Edit --> Move from pair to tuple
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
+          &context, std::move(client_identifiers_and_associated_values),
+          FLAGS_paillier_modulus_size);
+  
+/* YAR::Edit --> Pair code   
   std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
           &context, std::move(client_identifiers_and_associated_values.first),
           std::move(client_identifiers_and_associated_values.second),
           FLAGS_paillier_modulus_size);
+ */  
 
   // Consider grpc::SslServerCredentials if not running locally.
   std::unique_ptr<PrivateJoinAndComputeRpc::Stub> stub =

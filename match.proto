@@ -21,9 +21,10 @@ package private_join_and_compute;
 message EncryptedSet {
   repeated EncryptedElement elements = 1;
 }
-
+//YAR::Edit : Extending to two associated_data elements
 // Holds an encrypted value and possibly encrypted associated data.
 message EncryptedElement {
   optional bytes element = 1;
-  optional bytes associated_data = 2;
+  optional bytes associated_data_1 = 2;
+  optional bytes associated_data_2 = 3;
 }

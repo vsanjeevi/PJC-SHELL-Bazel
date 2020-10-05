@@ -73,7 +73,9 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
   for (const EncryptedElement& element :
        client_message.encrypted_set().elements()) {
     EncryptedElement reencrypted;
-    *reencrypted.mutable_associated_data() = element.associated_data();
+    //YAR::Edit : Two associated data elements
+    *reencrypted.mutable_associated_data_1() = element.associated_data_1();
+    *reencrypted.mutable_associated_data_2() = element.associated_data_2();
     StatusOr<std::string> reenc = ec_cipher_->ReEncrypt(element.element());
     if (!reenc.ok()) {
       return reenc.status();
@@ -109,13 +111,18 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
   if (!encrypted_zero.ok()) {
     return encrypted_zero.status();
   }
-  BigNum sum = encrypted_zero.value();
+  //YAR::Edit : Two sums to be computed
+  BigNum sum_1 = encrypted_zero.value();
+  BigNum sum_2 = encrypted_zero.value();
   for (const EncryptedElement& element : intersection) {
-    sum =
-        public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data()));
+    sum_1 =
+        public_paillier.Add(sum_1, ctx_->CreateBigNum(element.associated_data_1()));
+    sum_2 =
+        public_paillier.Add(sum_2, ctx_->CreateBigNum(element.associated_data_2()));
   }
 
-  *result.mutable_encrypted_sum() = sum.ToBytes();
+  *result.mutable_encrypted_sum_2() = sum_1.ToBytes();
+  *result.mutable_encrypted_sum_2() = sum_2.ToBytes();
   result.set_intersection_size(intersection.size());
   return result;
 }

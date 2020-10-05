@@ -26,10 +26,14 @@ message ClientMessage {
   }
 }
 
+//YAR::Edit : Extending to return 2 sums:
+//YAR::Note : Don't think anything has to be done here : Undoing change
 message ServerMessage {
   oneof server_message_oneof {
     PrivateIntersectionSumServerMessage
         private_intersection_sum_server_message = 1;
+//    PrivateIntersectionSumServerMessage
+//        private_intersection_sum_2_server_message = 2;
   }
 }
 
