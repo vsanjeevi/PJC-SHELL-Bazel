@@ -137,9 +137,16 @@ std::vector<std::string> SplitCsvLine(const std::string& line) {
 auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
                              int64_t intersection_size,
                              int64_t max_associated_value)
+//YAR:Edit - new return data type
+    -> StatusOr<std::tuple<
+        std::vector<std::string>,
+        std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>>, 
+        int64_t,int64_t>> {
+/* YAR::Edit - old return data type
     -> StatusOr<std::tuple<
         std::vector<std::string>,
         std::pair<std::vector<std::string>, std::vector<int64_t>>, int64_t>> {
+*/
   // Check parameters
   if (intersection_size < 0 || server_data_size < 0 || client_data_size < 0 ||
       max_associated_value < 0) {
@@ -214,11 +221,46 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
     }
   }
 
+
+  //YAR::Edit : Adding 2nd associated value
+  std::vector<int64_t> client_associated_values_2;
+  //Context context;
+  //BigNum associated_values_bound = context.CreateBigNum(max_associated_value);
+  client_associated_values_2.reserve(client_data_size);
+  int64_t intersection_sum_2 = 0;
+  for (int64_t i = 0; i < client_data_size; i++) {
+    // Converting the associated value from BigNum to int64_t should never fail
+    // because associated_values_bound is less than int64_t::max.
+    int64_t associated_value =
+        context.GenerateRandLessThan(associated_values_bound)
+            .ToIntValue()
+            .value();
+    client_associated_values_2.push_back(associated_value);
+
+    if (server_identifiers_set.count(client_identifiers[i]) > 0) {
+      intersection_sum_2 += associated_value;
+    }
+  }
+
+
   // Return the output.
+  //YAR::Edit --> change the return value type of this function
+  return std::make_tuple(std::move(server_identifiers),
+                         std::make_tuple(std::move(client_identifiers),
+                                        std::move(client_associated_values)
+                                        ,std::move(client_associated_values_2)
+                                        ),
+                         intersection_sum
+                         ,intersection_sum_2
+                         );
+
+  /* YAR::Edit :  Original return
   return std::make_tuple(std::move(server_identifiers),
                          std::make_pair(std::move(client_identifiers),
                                         std::move(client_associated_values)),
                          intersection_sum);
+  */
+
 }
 
 Status WriteServerDatasetToFile(const std::vector<std::string>& server_data,
@@ -249,6 +291,7 @@ Status WriteServerDatasetToFile(const std::vector<std::string>& server_data,
   return OkStatus();
 }
 
+//YAR::Edit : Original Pair Write --> needs to check for length of passes vectors
 Status WriteClientDatasetToFile(
     const std::vector<std::string>& client_identifiers,
     const std::vector<int64_t>& client_associated_values,
@@ -286,6 +329,48 @@ Status WriteClientDatasetToFile(
 
   return OkStatus();
 }
+
+
+//YAR::Edit --> Extending to writing a tuple
+Status WriteClientDatasetToFile(
+    const std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>> client_dataset,
+    absl::string_view client_data_filename) {
+
+  auto client_identifiers = std::get<0>(client_dataset);
+  auto client_value_1 = std::get<1>(client_dataset);
+  auto client_value_2 = std::get<2>(client_dataset);
+  
+  // Open file.
+  std::ofstream client_data_file;
+  client_data_file.open(std::string(client_data_filename));
+  if (!client_data_file.is_open()) {
+    return InvalidArgumentError(absl::StrCat(
+        "WriteClientDatasetToFile: Couldn't open client data file: ",
+        client_data_filename));
+  }
+
+  // Write each (escaped) line to file.
+  for (size_t i = 0; i < client_identifiers.size(); i++) {
+    client_data_file << absl::StrCat(EscapeForCsv(client_identifiers[i]), ",",
+                                     client_value_1[i],",",
+                                     client_value_2[i])
+                     << "\n";    
+  }
+
+  // Close file.
+  client_data_file.close();
+  if (client_data_file.fail()) {
+    return InternalError(
+        absl::StrCat("WriteClientDatasetToFile: Couldn't write to or close "
+                     "client data file: ",
+                     client_data_filename));
+  }
+
+  return OkStatus();
+}
+
+
+
 
 StatusOr<std::vector<std::string>> ReadServerDatasetFromFile(
     absl::string_view server_data_filename) {
@@ -327,7 +412,9 @@ StatusOr<std::vector<std::string>> ReadServerDatasetFromFile(
   return server_data;
 }
 
-StatusOr<std::pair<std::vector<std::string>, std::vector<BigNum>>>
+//YAR::Edit --> extending to Tuple
+//StatusOr<std::pair<std::vector<std::string>, std::vector<BigNum>>>
+StatusOr<std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>>>
 ReadClientDatasetFromFile(absl::string_view client_data_filename,
                           Context* context) {
   // Open file.
@@ -344,17 +431,29 @@ ReadClientDatasetFromFile(absl::string_view client_data_filename,
   // associated value.
   std::vector<std::string> client_identifiers;
   std::vector<BigNum> client_associated_values;
+  std::vector<BigNum> client_associated_values_2; //YAR::Edit
   std::string line;
   int64_t line_number = 0;
   while (getline(client_data_file, line)) {
     std::vector<std::string> columns = SplitCsvLine(line);
-    if (columns.size() != 2) {
+//YAR::Edit --> Extending to 3 columns
+   if (columns.size() != 3) {
+      return InvalidArgumentError(absl::StrCat(
+          "ReadClientDatasetFromFile: Expected exactly 3 items per line, "
+          "but line ",
+          line_number, "has ", columns.size(),
+          " comma-separated items (file: ", client_data_filename, ")"));
+    }
+
+/* YAR::Edit --> original code for 2 columns  
+   if (columns.size() != 2) {
       return InvalidArgumentError(absl::StrCat(
           "ReadClientDatasetFromFile: Expected exactly 2 items per line, "
           "but line ",
           line_number, "has ", columns.size(),
           " comma-separated items (file: ", client_data_filename, ")"));
     }
+ */    
     client_identifiers.push_back(columns[0]);
     int64_t parsed_associated_value;
     if (!absl::SimpleAtoi(columns[1], &parsed_associated_value) ||
@@ -364,8 +463,23 @@ ReadClientDatasetFromFile(absl::string_view client_data_filename,
                        "nonnegative associated value at line number",
                        line_number));
     }
+//YAR::Edit : Another parse associated value
+    int64_t parsed_associated_value_2;
+    if (!absl::SimpleAtoi(columns[1], &parsed_associated_value_2) ||
+        parsed_associated_value_2 < 0) {
+      return InvalidArgumentError(
+          absl::StrCat("ReadClientDatasetFromFile: could not parse a "
+                       "nonnegative associated value at line number",
+                       line_number));
+    }
+
     client_associated_values.push_back(
         context->CreateBigNum(parsed_associated_value));
+
+    //YAR::Edit    
+    client_associated_values_2.push_back(
+        context->CreateBigNum(parsed_associated_value_2));
+
     line_number++;
   }
 
@@ -377,8 +491,16 @@ ReadClientDatasetFromFile(absl::string_view client_data_filename,
         client_data_filename));
   }
 
+// YAR::Edit --> Extent to tuple
+  return std::make_tuple(std::move(client_identifiers),
+                        std::move(client_associated_values),
+                        std::move(client_associated_values_2)
+                        );
+
+ /* YAR::Edit --> Pair Code
   return std::make_pair(std::move(client_identifiers),
                         std::move(client_associated_values));
-}
+ */
+ }
 
 }  // namespace private_join_and_compute

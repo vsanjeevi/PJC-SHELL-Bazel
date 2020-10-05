@@ -57,6 +57,9 @@ int main(int argc, char** argv) {
   auto& server_identifiers = std::get<0>(dummy_data);
   auto& client_identifiers_and_associated_values = std::get<1>(dummy_data);
   int64_t intersection_sum = std::get<2>(dummy_data);
+  //YAR::Edit : Added second intersection_sum
+  int64_t intersection_sum_2 = std::get<3>(dummy_data);
+
 
   auto server_write_status = private_join_and_compute::WriteServerDatasetToFile(
       server_identifiers, FLAGS_server_data_file);
@@ -66,6 +69,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  //YAR::Edit - Extending to tuple
+  auto client_write_status = private_join_and_compute::WriteClientDatasetToFile(
+      client_identifiers_and_associated_values, FLAGS_client_data_file);
+  if (!client_write_status.ok()) {
+    std::cerr << "GenerateDummyData: Error writing client dataset: "
+              << client_write_status << std::endl;
+    return 1;
+  }
+
+  /* YAR::Edit - Original code for Pair write
   auto client_write_status = private_join_and_compute::WriteClientDatasetToFile(
       client_identifiers_and_associated_values.first,
       client_identifiers_and_associated_values.second, FLAGS_client_data_file);
@@ -74,12 +87,16 @@ int main(int argc, char** argv) {
               << client_write_status << std::endl;
     return 1;
   }
+  */
 
   std::cout << "Generated Server dataset of size " << FLAGS_client_data_size
             << ", Client dataset of size " << FLAGS_client_data_size
             << std::endl;
   std::cout << "Intersection size = " << FLAGS_intersection_size << std::endl;
   std::cout << "Intersection sum = " << intersection_sum << std::endl;
+  //YAR::Edit
+  std::cout << "Intersection sum 2 = " << intersection_sum_2 << std::endl;
+
 
   return 0;
 }

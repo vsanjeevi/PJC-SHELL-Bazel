@@ -58,9 +58,16 @@ static const int64_t kRandomIdentifierLengthBytes = 32;
 auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
                              int64_t intersection_size,
                              int64_t max_associated_value)
+//YAR:Edit - new return data type
     -> StatusOr<std::tuple<
         std::vector<std::string>,
-        std::pair<std::vector<std::string>, std::vector<int64_t>>, int64_t>>;
+        std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>>, 
+        int64_t,int64_t>>;
+/* YAR::Edit - old return data type
+    -> StatusOr<std::tuple<
+        std::vector<std::string>,
+        std::pair<std::vector<std::string>, std::vector<int64_t>>, int64_t>> ;
+*/
 
 // Write Server Dataset to the specified file in CSV format.
 Status WriteServerDatasetToFile(const std::vector<std::string>& server_data,
@@ -72,6 +79,11 @@ Status WriteClientDatasetToFile(
     const std::vector<int64_t>& client_associated_values,
     absl::string_view client_data_filename);
 
+//YAR::Edit -> Extending to tuple
+Status WriteClientDatasetToFile(
+    const std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>> client_dataset,
+    absl::string_view client_data_filename); 
+
 // Read Server Dataset from the specified file, which should be in CSV format.
 StatusOr<std::vector<std::string>> ReadServerDatasetFromFile(
     absl::string_view server_data_filename);
@@ -79,9 +91,13 @@ StatusOr<std::vector<std::string>> ReadServerDatasetFromFile(
 // Read Client Dataset (identifiers and associated values) from the specified
 // file, which should be in CSV format. Automatically packages the parsed
 // associated values as BigNums for convenience.
-StatusOr<std::pair<std::vector<std::string>, std::vector<BigNum>>>
+// YAR::Edit --> Extending to tuple
+//StatusOr<std::pair<std::vector<std::string>, std::vector<BigNum>>>
+StatusOr<std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>>>
 ReadClientDatasetFromFile(absl::string_view client_data_filename,
                           Context* context);
+
+
 
 // Splits a CSV line using ',' as a delimiter, and returns a vector of
 // associated strings.

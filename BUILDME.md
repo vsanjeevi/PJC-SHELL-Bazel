@@ -1,3 +1,16 @@
+# Modyfying Code
+Goal
++ Generate one extra column in the Server Data File
++ Include that extra column in protocol
+    + Apply same operation on two columns
+
+    
+
+
+## Prepropcessor analysis
+gcc -E client.cc > client.i
+
+
 # Understanding Bazel Build Server
 
 Ref: http://gensoft.pasteur.fr/docs/bazel/0.3.0/bazel-user-manual.html 
