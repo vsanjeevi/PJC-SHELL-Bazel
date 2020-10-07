@@ -144,12 +144,14 @@ PrivateIntersectionSumProtocolClientImpl::DecryptSum(
       ctx_->CreateBigNum(server_message.encrypted_sum_1()));
   if (!sum_1.ok()) {
     return sum_1.status();
-  }
+  } 
+
   StatusOr<BigNum> sum_2 = private_paillier_->Decrypt(
       ctx_->CreateBigNum(server_message.encrypted_sum_2()));
   if (!sum_2.ok()) {
     return sum_2.status();
   }
+
   return std::make_tuple(server_message.intersection_size(), sum_1.value(), sum_2.value());
 }
 
@@ -220,6 +222,19 @@ Status PrivateIntersectionSumProtocolClientImpl::Handle(
     if (!maybe_result.ok()) {
       return maybe_result.status();
     }
+    //YAR::Debug: Getting an error when recovering intersection sums
+/*     
+    auto i_size = std::get<0>(maybe_result.value());
+    auto i_sum_1 = std::get<1>(maybe_result.value());
+    auto i_sum_2 = std::get<2>(maybe_result.value());
+
+    std::cout << "Values got are : Intersection size is " 
+          << i_size << "\n"
+          << " First encrypted sum is " 
+          << i_sum_1.ToIntValue().value()
+          << " Second encrypted sum is "
+          << i_sum_2.ToIntValue().value();
+ */
     //YAR::Edit :Extending to 2 sums
     std::tie(intersection_size_, intersection_sum_1_, intersection_sum_2_) =
         std::move(maybe_result.value());

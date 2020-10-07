@@ -121,7 +121,7 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
         public_paillier.Add(sum_2, ctx_->CreateBigNum(element.associated_data_2()));
   }
 
-  *result.mutable_encrypted_sum_2() = sum_1.ToBytes();
+  *result.mutable_encrypted_sum_1() = sum_1.ToBytes();
   *result.mutable_encrypted_sum_2() = sum_2.ToBytes();
   result.set_intersection_size(intersection.size());
   return result;
@@ -167,7 +167,9 @@ Status PrivateIntersectionSumProtocolServerImpl::Handle(
           ->mutable_server_round_two()) =
         std::move(maybe_server_round_two.value());
     // Mark the protocol as finished here.
-    protocol_finished_ = true;
+    //YAR::Edit Keep Server on
+    protocol_finished_=false;
+    //protocol_finished_ = true;
   } else {
     return InvalidArgumentError(
         "PrivateIntersectionSumProtocolServerImpl: Received a client message "

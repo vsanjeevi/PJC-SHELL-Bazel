@@ -465,7 +465,7 @@ ReadClientDatasetFromFile(absl::string_view client_data_filename,
     }
 //YAR::Edit : Another parse associated value
     int64_t parsed_associated_value_2;
-    if (!absl::SimpleAtoi(columns[1], &parsed_associated_value_2) ||
+    if (!absl::SimpleAtoi(columns[2], &parsed_associated_value_2) ||
         parsed_associated_value_2 < 0) {
       return InvalidArgumentError(
           absl::StrCat("ReadClientDatasetFromFile: could not parse a "
