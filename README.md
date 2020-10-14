@@ -1,9 +1,112 @@
-# Notes:
+# Adapting to CMPE 295 : Master's Project
 
 ## State Model between Client & Server
 
+ID Keys: Encrypted using Communtative Cipher
++ Client & Server have their own commutative ciphers created
+
+Business Data: 
++ Client encrypts using PrivatePallier
+    + (1) create N = p*q (safe primes)
+    + (2) set that in the context that is transferred between Client & Server
++ Server sums the encrypted values using PublicPallier
+    + (1) create using N that is got from Client
++ Client decrypts using PrivatePallier
+
+## Protocol Extensions
+1) Adding another business data column: done
++ match.proto: Extended to add another associated data element
+```c++
+message EncryptedElement {
+  optional bytes element = 1;
+  optional bytes associated_data_1 = 2;               //existing 
+  optional bytes associated_data_2 = 3;               //extension
+} 
+```
+
+2) Adding operator sequence: 
++ match.proto
+```c++
+//YAR:: Add : Adding a way send operator codes applied on business data
+message OpCodeList {
+  repeated OpCode op_list = 1;
+}
+
+message OpCode {
+  optional string op_code = 1;
+}
+```
++ private_intersection_sum.proto
+```c++
+  message ClientRoundOne {
+    optional bytes public_key = 1;
+    optional EncryptedSet encrypted_set = 2;
+    optional EncryptedSet reencrypted_set = 3;
+    optional bytes data_columns = 4;                  //extension : Number
+    optional string operator_seq = 5;                 //operator sequence : String
+  }
+```
++ Ref: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec 
+    + Example operator sequence: "sum|prod|sq|sum-sq"
+
+## Bazel build 
+Optional Questions for Karn Seth:
+1) Does latest Bazel work for building this project?
+
++ 
 
 
+==============================================================
+Install Bazel 0.28.0 -- Only this version works
+
+https://docs.bazel.build/versions/0.28.0/install-ubuntu.html
+
+
+wget https://github.com/bazelbuild/bazel/releases/download/0.28.1/bazel-0.28.1-installer-linux-x86_64.sh
+
+chmod +x bazel-0.28.1-installer-linux-x86_64.sh
+./bazel-0.28.1-installer-linux-x86_64.sh --user
+
+
+export PATH="$PATH:$HOME/bin"
+
+sudo apt-get install openjdk-11-jdk
+
+git clone https://github.com/google/private-join-and-compute.git
+
+cd private-join-and-compute
+
+bazel build :all --incompatible_disable_deprecated_attr_params=false --incompatible_depset_is_not_iterable=false --incompatible_new_actions_api=false --incompatible_no_support_tools_in_action_inputs=false
+
+bazel-bin/generate_dummy_data --server_data_file=/tmp/dummy_server_data.csv \
+--client_data_file=/tmp/dummy_client_data.csv
+
+
+
+bazel-bin/generate_dummy_data \
+--server_data_file=/tmp/dummy_server_data.csv \
+--client_data_file=/tmp/dummy_client_data.csv --server_data_size=1000 \
+--client_data_size=1000 --intersection_size=200 --max_associated_value=100
+
+Start the server
+---------------------
+bazel-bin/server --server_data_file=/tmp/dummy_server_data.csv
+
+
+From Client Session
+----------------------
+bazel-bin/client --client_data_file=/tmp/dummy_client_data.csv
+
+## Bazel build errors & fixes
++ On 2020.04 Ubuntu upgrade I see the following error:
+ERROR: /home/yuva/Code/private-join-and-compute/BUILD:30:1: undeclared inclusion(s) in rule '//:_private_join_and_compute_proto_only':
+this rule is missing dependency declarations for the following files included by 'private_join_and_compute.pb.cc':
+  '/usr/lib/gcc/x86_64-linux-gnu/9/include/stddef.h'
+  '/usr/lib/gcc/x86_64-linux-gnu/9/include/stdarg.h'
+  '/usr/lib/gcc/x86_64-linux-gnu/9/include/stdint.h'
+  '/usr/lib/gcc/x86_64-linux-gnu/9/include/limits.h'
+  '/usr/lib/gcc/x86_64-linux-gnu/9/include/syslimits.h'
+  + Fix: Use bazel clean --expunge [https://stackoverflow.com/questions/48155976/bazel-undeclared-inclusions-errors-after-updating-gcc/48524741#48524741]
 
 # Original: Private Join and Compute
 

@@ -112,6 +112,7 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
     return encrypted_zero.status();
   }
   //YAR::Edit : Two sums to be computed
+  //  Using 1 value for both vectors --> Should this be 2 values?
   BigNum sum_1 = encrypted_zero.value();
   BigNum sum_2 = encrypted_zero.value();
   for (const EncryptedElement& element : intersection) {
@@ -168,7 +169,10 @@ Status PrivateIntersectionSumProtocolServerImpl::Handle(
         std::move(maybe_server_round_two.value());
     // Mark the protocol as finished here.
     //YAR::Edit Keep Server on
-    protocol_finished_=false;
+    {
+      protocol_finished_=false;
+      ec_cipher_ = nullptr;     //reset ec_cipher_ for new round
+    }
     //protocol_finished_ = true;
   } else {
     return InvalidArgumentError(

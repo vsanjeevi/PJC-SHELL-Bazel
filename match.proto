@@ -28,3 +28,20 @@ message EncryptedElement {
   optional bytes associated_data_1 = 2;
   optional bytes associated_data_2 = 3;
 }
+
+//YAR:: Add : Adding a way send operator codes applied on business data
+message OpCodeList {
+  repeated OpCode op_list = 1;
+}
+
+message OpCode {
+  enum Operator {
+    SUM = 0;
+    MULT = 1;
+    DIV = 2;
+    SQ = 3;
+    LPAREN = 4;
+    RPAREN = 5;
+  }
+  optional Operator op = 1 [default = SUM];
+}

@@ -32,10 +32,15 @@ message PrivateIntersectionSumClientMessage {
 
   // Message containing the client's set encrypted under the client's keys, and
   // the server's set re-encrypted with the client's key, and shuffled.
+  
+  // YAR::Edit Adding operator sequence for business data
+  // YAR::Note need a safe transport approach
   message ClientRoundOne {
     optional bytes public_key = 1;
     optional EncryptedSet encrypted_set = 2;
     optional EncryptedSet reencrypted_set = 3;
+    optional bytes data_columns = 4; 
+    optional OpCodeList operator_list = 5; 
   }
 }
 
