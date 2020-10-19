@@ -93,6 +93,10 @@ int ExecuteProtocol() {
 
   std::cout << "Client: Generating keys..." << std::endl;
   //YAR::Edit --> Move from pair to tuple
+  //  Replaced constructor to take a tuple instead of a pair
+  //  [Karn Seth 10/15 ] This is the time consuming part 
+  //    - since it creates 2 large primes 
+  //    - Improve performance by persisting the primes for subsequent runs?
   std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
           &context, std::move(client_identifiers_and_associated_values),

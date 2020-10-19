@@ -74,6 +74,20 @@ cc_library(
     ],
 )
 
+# YAR::Add : Defining a class hierarchy
+#       Base class = client_impl : Uses Pair Constructor (Original Code) <id, col>
+#           First  = client_tuple_impl : Extends client_impl to use tuple <id, col1, col2>
+#           Second = client_table_impl : Extends client_impl to use <id, vector<columns>> (variable number of columns)
+# cc_library(
+#     name = "client_tuple_impl",
+#     srcs = ["client_tuple_impl.cc"],
+#     hdrs = ["client_tuple_impl.h"],
+#     deps = [
+#         ":client_impl",
+#     ],
+# )
+
+
 cc_library(
     name = "protocol_server",
     hdrs = ["protocol_server.h"],

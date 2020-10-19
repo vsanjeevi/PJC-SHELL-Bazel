@@ -33,9 +33,7 @@ message PrivateIntersectionSumClientMessage {
   // Message containing the client's set encrypted under the client's keys, and
   // the server's set re-encrypted with the client's key, and shuffled.
   
-  // YAR::Edit Adding operator sequence for business data
-  // YAR::Note need a safe transport approach
-  message ClientRoundOne {
+message ClientRoundOne {
     optional bytes public_key = 1;
     optional EncryptedSet encrypted_set = 2;
     optional EncryptedSet reencrypted_set = 3;
@@ -43,6 +41,15 @@ message PrivateIntersectionSumClientMessage {
     optional OpCodeList operator_list = 5; 
   }
 }
+
+// YAR::Add Each data column as associated operator
+//   Client creates the data column with correct op codes
+message ClientRoundOne2 {
+  optional bytes public_key = 1;
+  optional EncryptedSetOp encrypted_set = 2;
+  optional EncryptedSetOp reencrypted_set = 3;
+}
+
 
 // Server Messages.
 
@@ -62,4 +69,11 @@ message PrivateIntersectionSumServerMessage {
     optional bytes encrypted_sum_1 = 2;
     optional bytes encrypted_sum_2 = 3;
   }
+
+  //YAR::Edit : Extending to list of values
+  message ServerRoundTwo2 {
+    optional int64 intersection_size = 1;
+    repeated bytes encrypted_values = 2;
+  }
+
 }

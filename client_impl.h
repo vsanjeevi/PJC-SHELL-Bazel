@@ -79,20 +79,27 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   const BigNum& intersection_sum_1() const { return intersection_sum_1_; }
   const BigNum& intersection_sum_2() const { return intersection_sum_2_; }
 
- private:
+  //YAR::Add  : extending to vector of values
+  const std::vector<BigNum>& intersection_values() const {return intersection_values_;}
+ 
+ //YAR::Edit : Extending to Class Hierarchy
+ protected:
+ //private: // YAR::Edit : Original Code
   // The server sends the first message of the protocol, which contains its
   // encrypted set.  This party then re-encrypts that set and replies with the
   // reencrypted values and its own encrypted set.
-  StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> ReEncryptSet(
+  virtual StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> ReEncryptSet(
       const PrivateIntersectionSumServerMessage::ServerRoundOne&
           server_message);
+
+  virtual StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> EncryptCol();
 
   // After the server computes the intersection-sum, it will send it back to
   // this party for decryption, together with the intersection_size. This party
   // will decrypt and output the intersection sum and intersection size.
   
   // YAR::Edit : extending to tuple
-  StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum(
+  virtual StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum(
       const PrivateIntersectionSumServerMessage::ServerRoundTwo&
           server_message);
 
@@ -104,12 +111,16 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
 
   Context* ctx_;  // not owned
 
-  //YAR::Edit : Pair implementation
+  //YAR::Edit : Original Pair implementation
   std::vector<std::string> elements_;
   std::vector<BigNum> values_;
 
-  //YAR::Edit : table
+  //YAR::Edit : table with 2 columns
   std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>> table_;
+
+  //YAR:: Add : big_table with many (dynamic) columns
+  std::tuple<std::vector<std::string>, std::vector<std::vector<BigNum>>> big_table_;
+
 
   // The Paillier private key
   BigNum p_, q_;
@@ -117,9 +128,15 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   // These values will hold the intersection sum and size when the protocol has
   // been completed.
   int64_t intersection_size_ = 0;
+  
+  //BigNum intersection_sum_;
+  
   //YAR::Edit : Extending to 2 sums
   BigNum intersection_sum_1_;
   BigNum intersection_sum_2_;
+
+  //YAR::Add : Extending to multiple values
+  std::vector<BigNum> intersection_values_;
 
   std::unique_ptr<ECCommutativeCipher> ec_cipher_;
   std::unique_ptr<PrivatePaillier> private_paillier_;

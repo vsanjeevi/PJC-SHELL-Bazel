@@ -69,3 +69,5 @@ load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
 
 # Loads transitive dependencies of GRPC.
 grpc_extra_deps()
+
+#google-shell encryption dependencies can be brought in here

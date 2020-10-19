@@ -61,10 +61,20 @@ PrivateIntersectionSumProtocolClientImpl::ReEncryptSet(
     const PrivateIntersectionSumServerMessage::ServerRoundOne& message) {
   private_paillier_ = absl::make_unique<PrivatePaillier>(ctx_, p_, q_, 2);
   BigNum pk = p_ * q_;
+
+  //YAR:: Encrypt the table that Client has
   PrivateIntersectionSumClientMessage::ClientRoundOne result;
+  auto maybe_result = EncryptCol();
+    if (!maybe_result.ok()) {
+      return maybe_result.status();
+    }
+
+  result= maybe_result.value();
   *result.mutable_public_key() = pk.ToBytes();
-  
+
+  /*
   //YAR::Edit : Tuple implementation
+
   auto ids = std::get<0>(table_);
   auto col_1 = std::get<1>(table_);
   auto col_2 = std::get<2>(table_);
@@ -92,11 +102,11 @@ PrivateIntersectionSumProtocolClientImpl::ReEncryptSet(
     *element->mutable_associated_data_2() = value_2.value().ToBytes();
 
   }
+  */
 
-
-
+  /*
   //YAR::Edit : Pair implementation
-/*   for (size_t i = 0; i < elements_.size(); i++) {
+  for (size_t i = 0; i < elements_.size(); i++) {
     EncryptedElement* element = result.mutable_encrypted_set()->add_elements();
     StatusOr<std::string> encrypted = ec_cipher_->Encrypt(elements_[i]);
     if (!encrypted.ok()) {
@@ -111,6 +121,7 @@ PrivateIntersectionSumProtocolClientImpl::ReEncryptSet(
   }
  */
 
+  //YAR:Notes : Reencrypt the ID column Server sent
   std::vector<EncryptedElement> reencrypted_set;
   for (const EncryptedElement& element : message.encrypted_set().elements()) {
     EncryptedElement reencrypted;
@@ -131,6 +142,44 @@ PrivateIntersectionSumProtocolClientImpl::ReEncryptSet(
 
   return result;
 }
+
+//YAR::Add : Refactoring
+// Moving the data format specific operations to a helper function
+// This will allow for specialization through inheritance  
+StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> 
+PrivateIntersectionSumProtocolClientImpl::EncryptCol(){
+  auto ids = std::get<0>(table_);
+  auto col_1 = std::get<1>(table_);
+  auto col_2 = std::get<2>(table_);
+
+  PrivateIntersectionSumClientMessage::ClientRoundOne result;
+
+  for (size_t i = 0; i < ids.size(); i++) {
+    EncryptedElement* element = result.mutable_encrypted_set()->add_elements();
+    StatusOr<std::string> encrypted = ec_cipher_->Encrypt(ids[i]);
+    if (!encrypted.ok()) {
+      return encrypted.status();
+    }
+    *element->mutable_element() = encrypted.value();
+    //YAR::Note : This is where the business keys are encrypted using homomorphic encryption
+    //col_1
+    StatusOr<BigNum> value_1 = private_paillier_->Encrypt(col_1[i]);
+    if (!value_1.ok()) {
+      return value_1.status();
+    }
+    *element->mutable_associated_data_1() = value_1.value().ToBytes();
+
+    //col_2
+    StatusOr<BigNum> value_2 = private_paillier_->Encrypt(col_2[i]);
+    if (!value_2.ok()) {
+      return value_2.status();
+    }
+    *element->mutable_associated_data_2() = value_2.value().ToBytes();
+
+  }
+  return result;
+}
+
 
 //YAR::Edit : extending to 2 sums
 StatusOr<std::tuple<int64_t, BigNum, BigNum>>

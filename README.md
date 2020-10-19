@@ -14,6 +14,9 @@ Business Data:
 + Client decrypts using PrivatePallier
 
 ## Protocol Extensions
++ Ref: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec 
+
+
 1) Adding another business data column: done
 + match.proto: Extended to add another associated data element
 ```c++
@@ -28,14 +31,28 @@ message EncryptedElement {
 + match.proto
 ```c++
 //YAR:: Add : Adding a way send operator codes applied on business data
+//  Only looking at the distribution characteristics of one column
+//  Cross-column expressions : Future work
 message OpCodeList {
   repeated OpCode op_list = 1;
 }
 
+//YAR:: Add: This depends on the homomorphic encryption used
+//  This gets applied on ONE Column only
+//  Possible : 
+//      1) sum(col) 
+//      2) sum(col^2) 
+//      3) var(col) = sum([(x-avg(col))^2])/n 
 message OpCode {
-  optional string op_code = 1;
+  enum Operator {
+    SUM = 0;
+    SUMSQ = 1;
+    VAR = 2;
+  }
+  optional Operator op = 1 [default = SUM];
 }
 ```
+
 + private_intersection_sum.proto
 ```c++
   message ClientRoundOne {
@@ -46,17 +63,14 @@ message OpCode {
     optional string operator_seq = 5;                 //operator sequence : String
   }
 ```
-+ Ref: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec 
-    + Example operator sequence: "sum|prod|sq|sum-sq"
-
-## Bazel build 
-Optional Questions for Karn Seth:
-1) Does latest Bazel work for building this project?
-
-+ 
 
 
-==============================================================
+## Class Hierarchy design change
++ Move from in-place edits to derivation!
+    + Will preserve pair, tuple and multiple columns implementation!
+
+# Bazel Build Process
+
 Install Bazel 0.28.0 -- Only this version works
 
 https://docs.bazel.build/versions/0.28.0/install-ubuntu.html

@@ -29,19 +29,52 @@ message EncryptedElement {
   optional bytes associated_data_2 = 3;
 }
 
+/**************************************************************/
 //YAR:: Add : Adding a way send operator codes applied on business data
+
+/*============================================================*/
+//YAR:: Add : Multiple Column support
+//  This is a column aggregate operation 
+//  First element's operation decides for the complete column
+message EncryptedSetOp {
+  repeated EncryptedElementOp elements = 1;
+}
+
+message EncryptedElementOp{
+  optional bytes element = 1;
+  repeated ElementOp associated_data = 2;
+} 
+
+/*============================================================*/
+/*------------------------------------------------------------*/
+//YAR:: Add : Design 2: ColOp : Keep operator associated with column
+message ElementOp {
+  optional bytes data =1;
+  optional OpCode operation = 2;
+}
+
+/*------------------------------------------------------------*/
+//YAR:: Add : Design 1: OpCodeList sent independently
+//  Only looking at the distribution characteristics of one column
+//  Cross-column expressions : Future work
 message OpCodeList {
   repeated OpCode op_list = 1;
 }
 
+/*============================================================*/
+//YAR:: Add: Operators supported
+//  Dependencies
+//      -  on the homomorphic encryption used
+//      -  applied on ONE Column only
+//  Possible : 
+//      1) sum(col) 
+//      2) sum(col^2) 
+//      3) var(col) = sum([(x-avg(col))^2])/n 
 message OpCode {
   enum Operator {
     SUM = 0;
-    MULT = 1;
-    DIV = 2;
-    SQ = 3;
-    LPAREN = 4;
-    RPAREN = 5;
+    SUMSQ = 1;
+    VAR = 2;
   }
   optional Operator op = 1 [default = SUM];
 }
