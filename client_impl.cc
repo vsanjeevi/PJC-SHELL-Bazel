@@ -180,6 +180,30 @@ PrivateIntersectionSumProtocolClientImpl::EncryptCol(){
   return result;
 }
 
+//YAR::Add : Refactoring
+//This method can directly set the internal variables
+Status PrivateIntersectionSumProtocolClientImpl::DecryptSum2(
+    const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message) {
+  if (private_paillier_ == nullptr) {
+    return InvalidArgumentError("Called DecryptSum before ReEncryptSet.");
+  }
+
+  StatusOr<BigNum> sum_1 = private_paillier_->Decrypt(
+      ctx_->CreateBigNum(server_message.encrypted_sum_1()));
+  if (!sum_1.ok()) {
+    return sum_1.status();
+  } 
+  intersection_sum_1_ = sum_1.value(); //BigNum --> convert to int to print
+
+  StatusOr<BigNum> sum_2 = private_paillier_->Decrypt(
+      ctx_->CreateBigNum(server_message.encrypted_sum_2()));
+  if (!sum_2.ok()) {
+    return sum_2.status();
+  }
+  intersection_sum_2_ = sum_2.value();
+
+  return OkStatus();
+}
 
 //YAR::Edit : extending to 2 sums
 StatusOr<std::tuple<int64_t, BigNum, BigNum>>
@@ -266,13 +290,21 @@ Status PrivateIntersectionSumProtocolClientImpl::Handle(
                  .has_server_round_two()) {
     // Handle the server round two message.
     auto maybe_result =
+        DecryptSum2(server_message.private_intersection_sum_server_message()
+                       .server_round_two());
+    if (!maybe_result.ok()) {
+      return maybe_result;
+    }
+/*     
+
+    auto maybe_result =
         DecryptSum(server_message.private_intersection_sum_server_message()
                        .server_round_two());
     if (!maybe_result.ok()) {
       return maybe_result.status();
     }
+
     //YAR::Debug: Getting an error when recovering intersection sums
-/*     
     auto i_size = std::get<0>(maybe_result.value());
     auto i_sum_1 = std::get<1>(maybe_result.value());
     auto i_sum_2 = std::get<2>(maybe_result.value());
@@ -283,12 +315,12 @@ Status PrivateIntersectionSumProtocolClientImpl::Handle(
           << i_sum_1.ToIntValue().value()
           << " Second encrypted sum is "
           << i_sum_2.ToIntValue().value();
- */
     //YAR::Edit :Extending to 2 sums
     std::tie(intersection_size_, intersection_sum_1_, intersection_sum_2_) =
         std::move(maybe_result.value());
+ */
+
     // Mark the protocol as finished here.
-    //YAR::Note: Does this signal server to stop?
     protocol_finished_ = true;
     return OkStatus();
   }

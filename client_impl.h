@@ -98,6 +98,11 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   // this party for decryption, together with the intersection_size. This party
   // will decrypt and output the intersection sum and intersection size.
   
+  //YAR::Setting up refactoring 
+  // This function will directly set the internal variables
+  Status DecryptSum2(
+    const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message); 
+
   // YAR::Edit : extending to tuple
   virtual StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum(
       const PrivateIntersectionSumServerMessage::ServerRoundTwo&
