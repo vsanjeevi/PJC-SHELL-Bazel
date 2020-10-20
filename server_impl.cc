@@ -73,6 +73,73 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
   for (const EncryptedElement& element :
        client_message.encrypted_set().elements()) {
     EncryptedElement reencrypted;
+    *reencrypted.mutable_associated_data() = element.associated_data();
+    StatusOr<std::string> reenc = ec_cipher_->ReEncrypt(element.element());
+    if (!reenc.ok()) {
+      return reenc.status();
+    }
+    *reencrypted.mutable_element() = reenc.value();
+    client_set.push_back(reencrypted);
+  }
+  for (const EncryptedElement& element :
+       client_message.reencrypted_set().elements()) {
+    server_set.push_back(element);
+  }
+
+  // std::set_intersection requires sorted inputs.
+  std::sort(client_set.begin(), client_set.end(),
+            [](const EncryptedElement& a, const EncryptedElement& b) {
+              return a.element() < b.element();
+            });
+  std::sort(server_set.begin(), server_set.end(),
+            [](const EncryptedElement& a, const EncryptedElement& b) {
+              return a.element() < b.element();
+            });
+  std::set_intersection(
+      client_set.begin(), client_set.end(), server_set.begin(),
+      server_set.end(), std::back_inserter(intersection),
+      [](const EncryptedElement& a, const EncryptedElement& b) {
+        return a.element() < b.element();
+      });
+
+  // From the intersection we compute the sum of the associated values, which is
+  // the result we return to the client.
+  StatusOr<BigNum> encrypted_zero =
+      public_paillier.Encrypt(ctx_->CreateBigNum(0));
+  if (!encrypted_zero.ok()) {
+    return encrypted_zero.status();
+  }
+
+  BigNum sum = encrypted_zero.value();
+  for (const EncryptedElement& element : intersection) {
+    sum =
+        public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data()));
+  }
+
+  *result.mutable_encrypted_sum() = sum.ToBytes();
+  result.set_intersection_size(intersection.size());
+  return result;
+}
+
+/* Two associated_data() implementation
+StatusOr<PrivateIntersectionSumServerMessage::ServerRoundTwo>
+PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
+    const PrivateIntersectionSumClientMessage::ClientRoundOne& client_message) {
+  if (ec_cipher_ == nullptr) {
+    return InvalidArgumentError(
+        "Called ComputeIntersection before EncryptSet.");
+  }
+  PrivateIntersectionSumServerMessage::ServerRoundTwo result;
+  BigNum N = ctx_->CreateBigNum(client_message.public_key());
+  PublicPaillier public_paillier(ctx_, N, 2);
+
+  std::vector<EncryptedElement> server_set, client_set, intersection;
+
+  // First, we re-encrypt the client party's set, so that we can compare with
+  // the re-encrypted set received from the client.
+  for (const EncryptedElement& element :
+       client_message.encrypted_set().elements()) {
+    EncryptedElement reencrypted;
     //YAR::Edit : Two associated data elements
     *reencrypted.mutable_associated_data_1() = element.associated_data_1();
     *reencrypted.mutable_associated_data_2() = element.associated_data_2();
@@ -127,6 +194,7 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
   result.set_intersection_size(intersection.size());
   return result;
 }
+*/
 
 Status PrivateIntersectionSumProtocolServerImpl::Handle(
     const ClientMessage& request,

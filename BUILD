@@ -84,6 +84,17 @@ cc_library(
 #     hdrs = ["client_tuple_impl.h"],
 #     deps = [
 #         ":client_impl",
+#         ":match_proto",
+#         ":message_sink",
+#         ":private_intersection_sum_proto",
+#         ":private_join_and_compute_proto",
+#         ":protocol_client",
+#         "//crypto:bn_util",
+#         "//crypto:ec_commutative_cipher",
+#         "//crypto:paillier",
+#         "//util:status",
+#         "//util:status_includes",
+#         "@com_google_absl//absl/memory",
 #     ],
 # )
 

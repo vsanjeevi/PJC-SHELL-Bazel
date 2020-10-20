@@ -33,17 +33,17 @@ namespace private_join_and_compute {
 // This is the party that will receive the sum as output.
 class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
  public:
- //YAR::Edit: Moving to Tuple constructor 
- /*
+ 
   PrivateIntersectionSumProtocolClientImpl(
       Context* ctx, const std::vector<std::string>& elements,
       const std::vector<BigNum>& values, int32_t modulus_size);
- */
+ 
+ /*
   //YAR::Edit: Constructor using tuple instead of pair
   PrivateIntersectionSumProtocolClientImpl(
       Context* ctx, const std::tuple<std::vector<std::string>, 
       std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size);
-
+ */
 
   // Generates the StartProtocol message and sends it on the message sink.
   Status StartProtocol(
@@ -75,12 +75,14 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
 
   // Utility functions for testing.
   int64_t intersection_size() const { return intersection_size_; }
+  const BigNum& intersection_sum() const { return intersection_sum_; }
+
   //YAR::Edit : extending to 2 sums
-  const BigNum& intersection_sum_1() const { return intersection_sum_1_; }
-  const BigNum& intersection_sum_2() const { return intersection_sum_2_; }
+  //const BigNum& intersection_sum_1() const { return intersection_sum_1_; }
+  //const BigNum& intersection_sum_2() const { return intersection_sum_2_; }
 
   //YAR::Add  : extending to vector of values
-  const std::vector<BigNum>& intersection_values() const {return intersection_values_;}
+  //const std::vector<BigNum>& intersection_values() const {return intersection_values_;}
  
  //YAR::Edit : Extending to Class Hierarchy
  protected:
@@ -92,6 +94,8 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
       const PrivateIntersectionSumServerMessage::ServerRoundOne&
           server_message);
 
+  //YAR::Setting up refactoring 
+  // This function will directly set the internal variables
   virtual StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> EncryptCol();
 
   // After the server computes the intersection-sum, it will send it back to
@@ -100,15 +104,16 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   
   //YAR::Setting up refactoring 
   // This function will directly set the internal variables
-  Status DecryptSum2(
+  virtual Status DecryptSum(
     const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message); 
 
+/*
   // YAR::Edit : extending to tuple
-  virtual StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum(
+  virtual StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum2(
       const PrivateIntersectionSumServerMessage::ServerRoundTwo&
           server_message);
 
-  /* //YAR::Edit : One sum implementation
+   //YAR::Edit : One sum implementation
   StatusOr<std::pair<int64_t, BigNum>> DecryptSum(
       const PrivateIntersectionSumServerMessage::ServerRoundTwo&
           server_message);
@@ -121,10 +126,10 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   std::vector<BigNum> values_;
 
   //YAR::Edit : table with 2 columns
-  std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>> table_;
+  //std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>> table_;
 
   //YAR:: Add : big_table with many (dynamic) columns
-  std::tuple<std::vector<std::string>, std::vector<std::vector<BigNum>>> big_table_;
+  //std::tuple<std::vector<std::string>, std::vector<std::vector<BigNum>>> big_table_;
 
 
   // The Paillier private key
@@ -134,14 +139,14 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   // been completed.
   int64_t intersection_size_ = 0;
   
-  //BigNum intersection_sum_;
+  BigNum intersection_sum_;
   
   //YAR::Edit : Extending to 2 sums
-  BigNum intersection_sum_1_;
-  BigNum intersection_sum_2_;
+  //BigNum intersection_sum_1_;
+  //BigNum intersection_sum_2_;
 
   //YAR::Add : Extending to multiple values
-  std::vector<BigNum> intersection_values_;
+  //std::vector<BigNum> intersection_values_;
 
   std::unique_ptr<ECCommutativeCipher> ec_cipher_;
   std::unique_ptr<PrivatePaillier> private_paillier_;

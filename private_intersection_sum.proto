@@ -37,8 +37,6 @@ message ClientRoundOne {
     optional bytes public_key = 1;
     optional EncryptedSet encrypted_set = 2;
     optional EncryptedSet reencrypted_set = 3;
-    optional bytes data_columns = 4; 
-    optional OpCodeList operator_list = 5; 
   }
 }
 
@@ -66,14 +64,20 @@ message PrivateIntersectionSumServerMessage {
   //YAR::Edit : Extending to two sums
   message ServerRoundTwo {
     optional int64 intersection_size = 1;
+    optional bytes encrypted_sum = 2;
+  }
+
+  //YAR::Edit : Extending to 2 business data columns
+  message ServerRoundTwo2 {
+    optional int64 intersection_size = 1;
     optional bytes encrypted_sum_1 = 2;
     optional bytes encrypted_sum_2 = 3;
   }
 
   //YAR::Edit : Extending to list of values
-  message ServerRoundTwo2 {
+  message ServerRoundTwo3 {
     optional int64 intersection_size = 1;
     repeated bytes encrypted_values = 2;
   }
-
+  
 }

@@ -97,10 +97,7 @@ int ExecuteProtocol() {
   //  [Karn Seth 10/15 ] This is the time consuming part 
   //    - since it creates 2 large primes 
   //    - Improve performance by persisting the primes for subsequent runs?
-  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
-      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
-          &context, std::move(client_identifiers_and_associated_values),
-          FLAGS_paillier_modulus_size);
+
   
 /* YAR::Edit --> Pair code   
   std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
@@ -108,7 +105,19 @@ int ExecuteProtocol() {
           &context, std::move(client_identifiers_and_associated_values.first),
           std::move(client_identifiers_and_associated_values.second),
           FLAGS_paillier_modulus_size);
- */  
+*/  
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
+          &context, std::move(std::get<0>(client_identifiers_and_associated_values)),
+          std::move(std::get<1>(client_identifiers_and_associated_values)),
+          FLAGS_paillier_modulus_size);
+
+/*
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client2 =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientTupleImpl>(
+          &context, std::move(client_identifiers_and_associated_values),
+          FLAGS_paillier_modulus_size);
+*/
 
   // Consider grpc::SslServerCredentials if not running locally.
   std::unique_ptr<PrivateJoinAndComputeRpc::Stub> stub =

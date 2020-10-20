@@ -19,13 +19,17 @@ class PrivateIntersectionSumProtocolClientTupleImpl : public PrivateIntersection
       Context* ctx, const std::tuple<std::vector<std::string>, 
       std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size);
 
+  // Prints the result, namely the intersection size and the intersection sum.
+  Status PrintOutput() override;
+
   const BigNum& intersection_sum_1() const { return intersection_sum_1_; }
   const BigNum& intersection_sum_2() const { return intersection_sum_2_; }
  
  protected:
-   StatusOr<std::tuple<int64_t, BigNum, BigNum>>DecryptSum(
-      const PrivateIntersectionSumServerMessage::ServerRoundTwo&
-          server_message);
+  virtual StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> EncryptCol() override;
+
+  Status DecryptSum(
+    const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message) override;
 
   //table with 2 columns
   std::tuple<std::vector<std::string>, std::vector<BigNum>, std::vector<BigNum>> table_;
@@ -34,6 +38,6 @@ class PrivateIntersectionSumProtocolClientTupleImpl : public PrivateIntersection
   BigNum intersection_sum_1_;
   BigNum intersection_sum_2_;
 
-
+};
 }  // namespace private_join_and_compute
 #endif  // OPEN_SOURCE_PRIVATE_INTERSECTION_SUM_CLIENT_TUPLE_IMPL_H_
