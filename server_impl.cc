@@ -70,6 +70,8 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
 
   // First, we re-encrypt the client party's set, so that we can compare with
   // the re-encrypted set received from the client.
+  // YAR:: Notes : The associated data is maintained along with the client party's IDs
+  /*
   for (const EncryptedElement& element :
        client_message.encrypted_set().elements()) {
     EncryptedElement reencrypted;
@@ -81,6 +83,15 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
     *reencrypted.mutable_element() = reenc.value();
     client_set.push_back(reencrypted);
   }
+  */
+  auto encryptedSet = client_message.encrypted_set();
+
+  auto maybe_client_set = EncryptClientSet(encryptedSet);
+  if (!maybe_client_set.ok()) {
+    return maybe_client_set.status();
+  }
+  client_set = std::move(maybe_client_set.value());
+
   for (const EncryptedElement& element :
        client_message.reencrypted_set().elements()) {
     server_set.push_back(element);
@@ -104,6 +115,7 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
 
   // From the intersection we compute the sum of the associated values, which is
   // the result we return to the client.
+  /*
   StatusOr<BigNum> encrypted_zero =
       public_paillier.Encrypt(ctx_->CreateBigNum(0));
   if (!encrypted_zero.ok()) {
@@ -115,11 +127,63 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
     sum =
         public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data()));
   }
+  */
+  auto maybe_aggregates = IntersectionAggregates(public_paillier,intersection);
+  if(!maybe_aggregates.ok()){
+    return maybe_aggregates.status();
+  }
+  auto aggregates = std::move(maybe_aggregates.value());
+  BigNum sum = aggregates[0]; //only one sum in the base implementation
 
   *result.mutable_encrypted_sum() = sum.ToBytes();
+  std::cout << " Returning intersection size as " << intersection.size() << std::endl; 
   result.set_intersection_size(intersection.size());
   return result;
 }
+
+// YAR::Add : Refactoring the encrypting part of the client message
+StatusOr<std::vector<EncryptedElement>>
+PrivateIntersectionSumProtocolServerImpl::EncryptClientSet(
+  const private_join_and_compute::EncryptedSet encryptedSet){
+  std::vector<EncryptedElement> client_set;
+  for (const EncryptedElement& element : encryptedSet.elements() ){
+    EncryptedElement reencrypted;
+    *reencrypted.mutable_associated_data() = element.associated_data();
+    StatusOr<std::string> reenc = ec_cipher_->ReEncrypt(element.element());
+    if (!reenc.ok()) {
+      return reenc.status();
+    }
+    *reencrypted.mutable_element() = reenc.value();
+    client_set.push_back(reencrypted);
+  }
+
+  return client_set;
+}
+
+// YAR::Add : Refactoring the computation of aggregates
+StatusOr<std::vector<BigNum>>
+PrivateIntersectionSumProtocolServerImpl::IntersectionAggregates(
+  const PublicPaillier& public_paillier,
+  const std::vector<EncryptedElement>& intersection){
+
+  StatusOr<BigNum> encrypted_zero =
+      public_paillier.Encrypt(ctx_->CreateBigNum(0));
+  if (!encrypted_zero.ok()) {
+    return encrypted_zero.status();
+  }
+
+  //original PJC protocol has only one associated element
+  std::vector<BigNum> aggregates;
+  BigNum sum = encrypted_zero.value();
+  for (const EncryptedElement& element : intersection) {
+    sum =
+        public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data()));
+  }
+  aggregates.push_back(sum);
+
+  return aggregates;
+}
+
 
 /* Two associated_data() implementation
 StatusOr<PrivateIntersectionSumServerMessage::ServerRoundTwo>

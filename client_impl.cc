@@ -90,11 +90,13 @@ PrivateIntersectionSumProtocolClientImpl::ReEncryptSet(
 
 //YAR::Add : Refactoring
 // Original Pair Implementation 
+// YAR::Note : StatusOr<> wraps the return object. 
 StatusOr<PrivateIntersectionSumClientMessage::ClientRoundOne> 
 PrivateIntersectionSumProtocolClientImpl::EncryptCol(){
 
   PrivateIntersectionSumClientMessage::ClientRoundOne result;
 
+  //elements_ & values_ are instance variables 
   for (size_t i = 0; i < elements_.size(); i++) {
     EncryptedElement* element = result.mutable_encrypted_set()->add_elements();
     StatusOr<std::string> encrypted = ec_cipher_->Encrypt(elements_[i]);
@@ -115,11 +117,13 @@ PrivateIntersectionSumProtocolClientImpl::EncryptCol(){
 
 //YAR::Add : Refactoring
 //This method sets the internal variables
-Status PrivateIntersectionSumProtocolClientImpl::DecryptSum(
+Status PrivateIntersectionSumProtocolClientImpl::DecryptResult(
     const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message) {
   if (private_paillier_ == nullptr) {
-    return InvalidArgumentError("Called DecryptSum before ReEncryptSet.");
+    return InvalidArgumentError("Called DecryptResult before ReEncryptSet.");
   }
+
+  intersection_size_ = server_message.intersection_size();        
 
   StatusOr<BigNum> sum = private_paillier_->Decrypt(
       ctx_->CreateBigNum(server_message.encrypted_sum()));
@@ -176,7 +180,7 @@ Status PrivateIntersectionSumProtocolClientImpl::Handle(
                  .has_server_round_two()) {
     // Handle the server round two message.
     auto maybe_result =
-        DecryptSum(server_message.private_intersection_sum_server_message()
+        DecryptResult(server_message.private_intersection_sum_server_message()
                        .server_round_two());
     if (!maybe_result.ok()) {
       return maybe_result;

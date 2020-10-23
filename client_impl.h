@@ -104,7 +104,7 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   
   //YAR::Setting up refactoring 
   // This function will directly set the internal variables
-  virtual Status DecryptSum(
+  virtual Status DecryptResult(
     const PrivateIntersectionSumServerMessage::ServerRoundTwo& server_message); 
 
 /*

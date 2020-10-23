@@ -173,7 +173,7 @@ int ExecuteProtocol() {
   auto intersection_size_and_sum_status =
       client->Handle(server_round_two, &invoke_server_handle_message_sink);
   if (!intersection_size_and_sum_status.ok()) {
-    std::cerr << "Client::ExecuteProtocol: failed to DecryptSum: "
+    std::cerr << "Client::ExecuteProtocol: failed to DecryptResult: "
               << intersection_size_and_sum_status << std::endl;
     return 1;
   }

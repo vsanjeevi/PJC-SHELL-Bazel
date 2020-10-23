@@ -61,9 +61,18 @@ class PrivateIntersectionSumProtocolServerImpl : public ProtocolServer {
   // Utility function, used for testing.
   ECCommutativeCipher* GetECCipher() { return ec_cipher_.get(); }
 
- private:
+ protected:
   // Encrypts the server's identifiers.
   StatusOr<PrivateIntersectionSumServerMessage::ServerRoundOne> EncryptSet();
+
+  // YAR::Add : Refactoring the encrypting part of the client message
+  virtual StatusOr<std::vector<EncryptedElement>> EncryptClientSet(
+    const private_join_and_compute::EncryptedSet encryptedSet);
+ 
+  //YAR::Add : Refactoring to extend to vector of values
+  virtual StatusOr<std::vector<BigNum>> IntersectionAggregates(
+    const PublicPaillier& public_paillier,
+    const std::vector<EncryptedElement>& intersection);
 
   // Computes the intersection size and encrypted intersection_sum.
   StatusOr<PrivateIntersectionSumServerMessage::ServerRoundTwo>
