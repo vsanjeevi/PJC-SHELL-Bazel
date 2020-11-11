@@ -1,19 +1,16 @@
 /*
- * Copyright 2019 Google Inc.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Extension to server_impl for sharing 2 business data columns
+ * Author:          Yuva Athur
+ * Created Date:    Nov. 10. 2020
+ * 
+ * 
+ * Follows the same implementation approach as PrivateIntersectionSumProtocolServerImpl
+ *   Created a new class instead - inheritance is not straight forward
  *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  
  */
 
-#include "server_impl.h"
+#include "server_tuple_impl.h"
 
 #include <algorithm>
 
@@ -29,7 +26,7 @@ using ::private_join_and_compute::PublicPaillier;
 namespace private_join_and_compute {
 
 StatusOr<PrivateIntersectionSumServerMessage::ServerRoundOne>
-PrivateIntersectionSumProtocolServerImpl::EncryptSet() {
+PrivateIntersectionSumProtocolServerTupleImpl::EncryptSet() {
   if (ec_cipher_ != nullptr) {
     return InvalidArgumentError("Attempted to call EncryptSet twice.");
   }
@@ -56,7 +53,7 @@ PrivateIntersectionSumProtocolServerImpl::EncryptSet() {
 }
 
 StatusOr<PrivateIntersectionSumServerMessage::ServerRoundTwo>
-PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
+PrivateIntersectionSumProtocolServerTupleImpl::ComputeIntersection(
     const PrivateIntersectionSumClientMessage::ClientRoundOne& client_message) {
   if (ec_cipher_ == nullptr) {
     return InvalidArgumentError(
@@ -68,25 +65,12 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
 
   std::vector<EncryptedElement> server_set, client_set, intersection;
 
-  // First, we re-encrypt the client party's set, so that we can compare with
-  // the re-encrypted set received from the client.
-  // YAR:: Notes : The associated data is maintained along with the client party's IDs
-  /*
-  for (const EncryptedElement& element :
-       client_message.encrypted_set().elements()) {
-    EncryptedElement reencrypted;
-    *reencrypted.mutable_associated_data() = element.associated_data();
-    StatusOr<std::string> reenc = ec_cipher_->ReEncrypt(element.element());
-    if (!reenc.ok()) {
-      return reenc.status();
-    }
-    *reencrypted.mutable_element() = reenc.value();
-    client_set.push_back(reencrypted);
-  }
-  */
   auto encryptedSet = client_message.encrypted_set();
 
+  // First, we re-encrypt the client party's set, so that we can compare with
+  // the re-encrypted set received from the client.
   auto maybe_client_set = EncryptClientSet(encryptedSet);
+
   if (!maybe_client_set.ok()) {
     return maybe_client_set.status();
   }
@@ -113,42 +97,37 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
         return a.element() < b.element();
       });
 
-  // From the intersection we compute the sum of the associated values, which is
+  // From the intersection we compute the aggregation of the associated values, which is
   // the result we return to the client.
-  /*
-  StatusOr<BigNum> encrypted_zero =
-      public_paillier.Encrypt(ctx_->CreateBigNum(0));
-  if (!encrypted_zero.ok()) {
-    return encrypted_zero.status();
-  }
-
-  BigNum sum = encrypted_zero.value();
-  for (const EncryptedElement& element : intersection) {
-    sum =
-        public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data()));
-  }
-  */
   auto maybe_aggregates = IntersectionAggregates(public_paillier,intersection);
   if(!maybe_aggregates.ok()){
     return maybe_aggregates.status();
   }
-  auto aggregates = std::move(maybe_aggregates.value());
-  BigNum sum = aggregates[0]; //only one sum in the base implementation
 
-  *result.mutable_encrypted_sum_1() = sum.ToBytes();
+  auto aggregates = std::move(maybe_aggregates.value());
+  BigNum sum_1 = aggregates[0]; 
+  BigNum sum_2 = aggregates[1]; 
+
+  *result.mutable_encrypted_sum_1() = sum_1.ToBytes();
+  *result.mutable_encrypted_sum_2() = sum_2.ToBytes();
+
   std::cout << " Returning intersection size as " << intersection.size() << std::endl; 
+
   result.set_intersection_size(intersection.size());
   return result;
 }
 
 // YAR::Add : Refactoring the encrypting part of the client message
 StatusOr<std::vector<EncryptedElement>>
-PrivateIntersectionSumProtocolServerImpl::EncryptClientSet(
+PrivateIntersectionSumProtocolServerTupleImpl::EncryptClientSet(
   const private_join_and_compute::EncryptedSet encryptedSet){
   std::vector<EncryptedElement> client_set;
   for (const EncryptedElement& element : encryptedSet.elements() ){
     EncryptedElement reencrypted;
+
     *reencrypted.mutable_associated_data_1() = element.associated_data_1();
+    *reencrypted.mutable_associated_data_2() = element.associated_data_2();
+
     StatusOr<std::string> reenc = ec_cipher_->ReEncrypt(element.element());
     if (!reenc.ok()) {
       return reenc.status();
@@ -162,7 +141,7 @@ PrivateIntersectionSumProtocolServerImpl::EncryptClientSet(
 
 // YAR::Add : Refactoring the computation of aggregates
 StatusOr<std::vector<BigNum>>
-PrivateIntersectionSumProtocolServerImpl::IntersectionAggregates(
+PrivateIntersectionSumProtocolServerTupleImpl::IntersectionAggregates(
   const PublicPaillier& public_paillier,
   const std::vector<EncryptedElement>& intersection){
 
@@ -172,19 +151,83 @@ PrivateIntersectionSumProtocolServerImpl::IntersectionAggregates(
     return encrypted_zero.status();
   }
 
-  //original PJC protocol has only one associated element
+  //reverting to simple list of 2 sums
+  BigNum sum_1 = encrypted_zero.value();
+  BigNum sum_2 = encrypted_zero.value();
   std::vector<BigNum> aggregates;
-  BigNum sum = encrypted_zero.value();
   for (const EncryptedElement& element : intersection) {
-    sum =
-        public_paillier.Add(sum, ctx_->CreateBigNum(element.associated_data_1()));
+    sum_1 =
+        public_paillier.Add(sum_1, ctx_->CreateBigNum(element.associated_data_1()));
+    sum_2 =
+        public_paillier.Add(sum_2, ctx_->CreateBigNum(element.associated_data_2()));
   }
-  aggregates.push_back(sum);
+
+  aggregates.push_back(sum_1);
+  aggregates.push_back(sum_2);
 
   return aggregates;
 }
 
 
+Status PrivateIntersectionSumProtocolServerTupleImpl::Handle(
+    const ClientMessage& request,
+    MessageSink<ServerMessage>* server_message_sink) {
+  if (protocol_finished()) {
+    return InvalidArgumentError(
+        "PrivateIntersectionSumProtocolServerImpl: Protocol is already "
+        "complete.");
+  }
+
+  // Check that the message is a PrivateIntersectionSum protocol message.
+  if (!request.has_private_intersection_sum_client_message()) {
+    return InvalidArgumentError(
+        "PrivateIntersectionSumProtocolServerImpl: Received a message for the "
+        "wrong protocol type");
+  }
+  const PrivateIntersectionSumClientMessage& client_message =
+      request.private_intersection_sum_client_message();
+
+  ServerMessage server_message;
+
+  if (client_message.has_start_protocol_request()) {
+    // Handle a protocol start message.
+    auto maybe_server_round_one = EncryptSet();
+    if (!maybe_server_round_one.ok()) {
+      return maybe_server_round_one.status();
+    }
+    *(server_message.mutable_private_intersection_sum_server_message()
+          ->mutable_server_round_one()) =
+        std::move(maybe_server_round_one.value());
+  } else if (client_message.has_client_round_one()) {
+    // Handle the client round 1 message.
+    auto maybe_server_round_two =
+        ComputeIntersection(client_message.client_round_one());
+    if (!maybe_server_round_two.ok()) {
+      return maybe_server_round_two.status();
+    }
+    *(server_message.mutable_private_intersection_sum_server_message()
+          ->mutable_server_round_two()) =
+        std::move(maybe_server_round_two.value());
+    // Mark the protocol as finished here.
+    //YAR::Edit Keep Server on
+    {
+      protocol_finished_=false;
+      ec_cipher_ = nullptr;     //reset ec_cipher_ for new round
+    }
+    //protocol_finished_ = true;
+  } else {
+    return InvalidArgumentError(
+        "PrivateIntersectionSumProtocolServerImpl: Received a client message "
+        "of an unknown type.");
+  }
+
+  return server_message_sink->Send(server_message);
+}
+
+}  // namespace private_join_and_compute
+
+
+/*********************************************************************************************/
 /* Two associated_data() implementation
 StatusOr<PrivateIntersectionSumServerMessage::ServerRoundTwo>
 PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
@@ -259,60 +302,3 @@ PrivateIntersectionSumProtocolServerImpl::ComputeIntersection(
   return result;
 }
 */
-
-Status PrivateIntersectionSumProtocolServerImpl::Handle(
-    const ClientMessage& request,
-    MessageSink<ServerMessage>* server_message_sink) {
-  if (protocol_finished()) {
-    return InvalidArgumentError(
-        "PrivateIntersectionSumProtocolServerImpl: Protocol is already "
-        "complete.");
-  }
-
-  // Check that the message is a PrivateIntersectionSum protocol message.
-  if (!request.has_private_intersection_sum_client_message()) {
-    return InvalidArgumentError(
-        "PrivateIntersectionSumProtocolServerImpl: Received a message for the "
-        "wrong protocol type");
-  }
-  const PrivateIntersectionSumClientMessage& client_message =
-      request.private_intersection_sum_client_message();
-
-  ServerMessage server_message;
-
-  if (client_message.has_start_protocol_request()) {
-    // Handle a protocol start message.
-    auto maybe_server_round_one = EncryptSet();
-    if (!maybe_server_round_one.ok()) {
-      return maybe_server_round_one.status();
-    }
-    *(server_message.mutable_private_intersection_sum_server_message()
-          ->mutable_server_round_one()) =
-        std::move(maybe_server_round_one.value());
-  } else if (client_message.has_client_round_one()) {
-    // Handle the client round 1 message.
-    auto maybe_server_round_two =
-        ComputeIntersection(client_message.client_round_one());
-    if (!maybe_server_round_two.ok()) {
-      return maybe_server_round_two.status();
-    }
-    *(server_message.mutable_private_intersection_sum_server_message()
-          ->mutable_server_round_two()) =
-        std::move(maybe_server_round_two.value());
-    // Mark the protocol as finished here.
-    //YAR::Edit Keep Server on
-    {
-      protocol_finished_=false;
-      ec_cipher_ = nullptr;     //reset ec_cipher_ for new round
-    }
-    //protocol_finished_ = true;
-  } else {
-    return InvalidArgumentError(
-        "PrivateIntersectionSumProtocolServerImpl: Received a client message "
-        "of an unknown type.");
-  }
-
-  return server_message_sink->Send(server_message);
-}
-
-}  // namespace private_join_and_compute

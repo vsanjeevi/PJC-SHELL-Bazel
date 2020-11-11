@@ -36,7 +36,7 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
  
   PrivateIntersectionSumProtocolClientImpl(
       Context* ctx, const std::vector<std::string>& elements,
-      const std::vector<BigNum>& values, int32_t modulus_size);
+      const std::vector<BigNum>& values, int32_t modulus_size, const std::string& op);
  
  /*
   //YAR::Edit: Constructor using tuple instead of pair
@@ -141,6 +141,9 @@ class PrivateIntersectionSumProtocolClientImpl : public ProtocolClient {
   
   BigNum intersection_sum_;
   
+  //command line extension
+  std::string op_;
+
   //YAR::Edit : Extending to 2 sums
   //BigNum intersection_sum_1_;
   //BigNum intersection_sum_2_;

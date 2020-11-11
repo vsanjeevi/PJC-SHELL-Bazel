@@ -55,6 +55,7 @@ cc_library(
     ],
 )
 
+# client_impl : Uses Pair Constructor (Original Code) <id, col>
 cc_library(
     name = "client_impl",
     srcs = ["client_impl.cc"],
@@ -74,29 +75,26 @@ cc_library(
     ],
 )
 
-# YAR::Add : Defining a class hierarchy
-#       Base class = client_impl : Uses Pair Constructor (Original Code) <id, col>
-#           First  = client_tuple_impl : Extends client_impl to use tuple <id, col1, col2>
-#           Second = client_table_impl : Extends client_impl to use <id, vector<columns>> (variable number of columns)
-# cc_library(
-#     name = "client_tuple_impl",
-#     srcs = ["client_tuple_impl.cc"],
-#     hdrs = ["client_tuple_impl.h"],
-#     deps = [
-#         ":client_impl",
-#         ":match_proto",
-#         ":message_sink",
-#         ":private_intersection_sum_proto",
-#         ":private_join_and_compute_proto",
-#         ":protocol_client",
-#         "//crypto:bn_util",
-#         "//crypto:ec_commutative_cipher",
-#         "//crypto:paillier",
-#         "//util:status",
-#         "//util:status_includes",
-#         "@com_google_absl//absl/memory",
-#     ],
-# )
+# client_tuple_impl : Extends client_impl to use tuple <id, col1, col2>
+cc_library(
+    name = "client_tuple_impl",
+    srcs = ["client_tuple_impl.cc"],
+    hdrs = ["client_tuple_impl.h"],
+    deps = [
+        ":client_impl",
+        ":match_proto",
+        ":message_sink",
+        ":private_intersection_sum_proto",
+        ":private_join_and_compute_proto",
+        ":protocol_client",
+        "//crypto:bn_util",
+        "//crypto:ec_commutative_cipher",
+        "//crypto:paillier",
+        "//util:status",
+        "//util:status_includes",
+        "@com_google_absl//absl/memory",
+    ],
+)
 
 
 cc_library(
@@ -113,6 +111,26 @@ cc_library(
     name = "server_impl",
     srcs = ["server_impl.cc"],
     hdrs = ["server_impl.h"],
+    deps = [
+        ":match_proto",
+        ":message_sink",
+        ":private_intersection_sum_proto",
+        ":private_join_and_compute_proto",
+        ":protocol_server",
+        "//crypto:bn_util",
+        "//crypto:ec_commutative_cipher",
+        "//crypto:paillier",
+        "//util:status",
+        "//util:status_includes",
+        "@com_google_absl//absl/memory",
+    ],
+)
+
+# server_tuple_impl : Extends server_impl to use tuple <id, col1, col2>
+cc_library(
+    name = "server_tuple_impl",
+    srcs = ["server_tuple_impl.cc"],
+    hdrs = ["server_tuple_impl.h"],
     deps = [
         ":match_proto",
         ":message_sink",
@@ -175,6 +193,7 @@ cc_binary(
         ":private_join_and_compute_rpc_impl",
         ":protocol_server",
         ":server_impl",
+        ":server_tuple_impl",
         "@com_github_gflags_gflags//:gflags",
         "@com_github_glog_glog//:glog",
         "@com_github_grpc_grpc//:grpc",
@@ -189,6 +208,7 @@ cc_binary(
     srcs = ["client.cc"],
     deps = [
         ":client_impl",
+        ":client_tuple_impl",
         ":data_util",
         ":private_join_and_compute_proto",
         ":protocol_client",

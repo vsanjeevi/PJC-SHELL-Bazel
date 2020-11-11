@@ -32,21 +32,33 @@ message PrivateIntersectionSumClientMessage {
 
   // Message containing the client's set encrypted under the client's keys, and
   // the server's set re-encrypted with the client's key, and shuffled.
+
+  //YAR: Extending protocol to take aggregation operators for 2 columns
   
   message ClientRoundOne {
     optional bytes public_key = 1;
     optional EncryptedSet encrypted_set = 2;
     optional EncryptedSet reencrypted_set = 3;
+    optional OpCode op_code_1 = 4;
+    optional OpCode op_code_2 = 5;
   }
 }
 
-// YAR::Add Each data column as associated operator
+// YAR::Add Extension to list of values without operator requirements
 //   Client creates the data column with correct op codes
-message ClientRoundOne2 {
-  optional bytes public_key = 1;
-  optional EncryptedSetOp encrypted_set = 2;
-  optional EncryptedSetOp reencrypted_set = 3;
-}
+// message ClientRoundOne2 {
+//   optional bytes public_key = 1;
+//   optional EncryptedSet2 encrypted_set = 2;
+//   optional EncryptedSet2 reencrypted_set = 3;
+// }
+
+// YAR::Add Extension to list of values with individual operators
+//   Columnar Aggregation only
+// message ClientRoundOne3 {
+//   optional bytes public_key = 1;
+//   optional EncryptedSetOp encrypted_set = 2;
+//   optional EncryptedSetOp reencrypted_set = 3;
+// }
 
 
 // Server Messages.
@@ -64,20 +76,21 @@ message PrivateIntersectionSumServerMessage {
   //YAR::Edit : Extending to two sums
   message ServerRoundTwo {
     optional int64 intersection_size = 1;
-    optional bytes encrypted_sum = 2;
-  }
-
-  //YAR::Edit : Extending to 2 business data columns
-  message ServerRoundTwo2 {
-    optional int64 intersection_size = 1;
     optional bytes encrypted_sum_1 = 2;
     optional bytes encrypted_sum_2 = 3;
   }
 
-  //YAR::Edit : Extending to list of values
-  message ServerRoundTwo3 {
-    optional int64 intersection_size = 1;
-    repeated bytes encrypted_values = 2;
-  }
+  // //YAR::Edit : Extending to 2 business data columns
+  // message ServerRoundTwo2 {
+  //   optional int64 intersection_size = 1;
+  //   optional bytes encrypted_sum_1 = 2;
+  //   optional bytes encrypted_sum_2 = 3;
+  // }
+
+  // //YAR::Edit : Extending to list of values
+  // message ServerRoundTwo2 {
+  //   optional int64 intersection_size = 1;
+  //   repeated bytes encrypted_values = 2;
+  // }
   
 }

@@ -13,6 +13,14 @@
  * limitations under the License.
  */
 
+
+/*
+ * Extension to server for sharing N business data columns
+ * Author:          Yuva Athur
+ * Created Date:    Nov. 10. 2020
+ * 
+*/
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -28,6 +36,7 @@
 #include "include/grpcpp/support/status.h"
 #include "data_util.h"
 #include "server_impl.h"
+#include "server_tuple_impl.h"
 #include "private_join_and_compute.grpc.pb.h"
 #include "private_join_and_compute_rpc_impl.h"
 #include "protocol_server.h"
@@ -36,6 +45,9 @@
 DEFINE_string(port, "0.0.0.0:10501", "Port on which to listen");
 DEFINE_string(server_data_file, "",
               "The file from which to read the server database.");
+//--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
+DEFINE_int32(multi_column,0,"Number of data columns avaialble for server to compute");
+
 
 int RunServer() {
   std::cout << "Server: loading data... " << std::endl;
@@ -48,9 +60,22 @@ int RunServer() {
   }
 
   ::private_join_and_compute::Context context;
-  std::unique_ptr<::private_join_and_compute::ProtocolServer> server =
+  std::unique_ptr<::private_join_and_compute::ProtocolServer> server = nullptr;
+
+  if(std::int32_t(FLAGS_multi_column)){
+  // 2 columns tuple implementation
+  server =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolServerTupleImpl>(
+          &context, std::move(maybe_server_identifiers.value())); 
+  } else {
+  //existing pair implementation
+  server =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolServerImpl>(
-          &context, std::move(maybe_server_identifiers.value()));
+          &context, std::move(maybe_server_identifiers.value()));  
+  }
+
+
+
   ::private_join_and_compute::PrivateJoinAndComputeRpcImpl service(std::move(server));
 
   ::grpc::ServerBuilder builder;

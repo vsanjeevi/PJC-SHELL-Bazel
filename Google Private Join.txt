@@ -41,3 +41,5 @@ bazel-bin/server --server_data_file=/tmp/dummy_server_data.csv
 From Client Session
 ----------------------
 bazel-bin/client --client_data_file=/tmp/dummy_client_data.csv
+
+Recovering github connection

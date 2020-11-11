@@ -13,6 +13,14 @@
  * limitations under the License.
  */
 
+/*
+ * Extension to client for sharing N business data columns
+ * Author:          Yuva Athur
+ * Created Date:    Nov. 10. 2020
+ * 
+*/
+
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -28,6 +36,7 @@
 #include "include/grpcpp/support/status.h"
 #include "data_util.h"
 #include "client_impl.h"
+#include "client_tuple_impl.h"  //extension
 #include "private_join_and_compute.grpc.pb.h"
 #include "private_join_and_compute.pb.h"
 #include "protocol_client.h"
@@ -43,6 +52,17 @@ DEFINE_int32(
     "The bit-length of the modulus to use for Paillier encryption. The modulus "
     "will be the product of two safe primes, each of size "
     "paillier_modulus_size/2.");
+
+//--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
+DEFINE_int32(multi_column,0,"Number of data columns avaialble for server to compute");
+
+DEFINE_string(operator_list,"SUM","Operator list");
+//--operator_list=SUM.SUMSQ.VARN
+// if operators == # Columns : Ok
+// if operators > # Columns: Ignore extra
+// if operators < # Columns : Use default = SUM
+// If # Columns = 5 & operator_list = SUM.SUMSQ.VARN then list = sum, sumsq, varn, sum, sum
+
 
 namespace private_join_and_compute {
 namespace {
@@ -98,26 +118,22 @@ int ExecuteProtocol() {
   //    - since it creates 2 large primes 
   //    - Improve performance by persisting the primes for subsequent runs?
 
-  
-/* YAR::Edit --> Pair code   
-  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
-      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
-          &context, std::move(client_identifiers_and_associated_values.first),
-          std::move(client_identifiers_and_associated_values.second),
-          FLAGS_paillier_modulus_size);
-*/  
-  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
+
+std::unique_ptr<::private_join_and_compute::ProtocolClient> client  = nullptr;
+if(std::int32_t(FLAGS_multi_column)){
+  // 2 columns tuple implementation
+  client =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientTupleImpl>(
+          &context, std::move(client_identifiers_and_associated_values),
+          FLAGS_paillier_modulus_size,std::string(FLAGS_operator_list));
+}else{
+  //existing pair implementation
+  client =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
           &context, std::move(std::get<0>(client_identifiers_and_associated_values)),
           std::move(std::get<1>(client_identifiers_and_associated_values)),
-          FLAGS_paillier_modulus_size);
-
-/*
-  std::unique_ptr<::private_join_and_compute::ProtocolClient> client2 =
-      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientTupleImpl>(
-          &context, std::move(client_identifiers_and_associated_values),
-          FLAGS_paillier_modulus_size);
-*/
+          FLAGS_paillier_modulus_size,std::string(FLAGS_operator_list));
+}
 
   // Consider grpc::SslServerCredentials if not running locally.
   std::unique_ptr<PrivateJoinAndComputeRpc::Stub> stub =
@@ -198,3 +214,28 @@ int main(int argc, char** argv) {
 
   return private_join_and_compute::ExecuteProtocol();
 }
+
+
+/**********************************************/
+/*
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
+          &context, std::move(std::get<0>(client_identifiers_and_associated_values)),
+          std::move(std::get<1>(client_identifiers_and_associated_values)),
+          FLAGS_paillier_modulus_size);
+*/
+/*
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client2 =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientTupleImpl>(
+          &context, std::move(client_identifiers_and_associated_values),
+          FLAGS_paillier_modulus_size);
+*/
+
+  
+/* YAR::Edit --> Pair code   
+  std::unique_ptr<::private_join_and_compute::ProtocolClient> client =
+      absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
+          &context, std::move(client_identifiers_and_associated_values.first),
+          std::move(client_identifiers_and_associated_values.second),
+          FLAGS_paillier_modulus_size);
+*/

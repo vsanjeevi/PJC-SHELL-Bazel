@@ -21,49 +21,12 @@ package private_join_and_compute;
 message EncryptedSet {
   repeated EncryptedElement elements = 1;
 }
-//YAR::Edit : Extending to two associated_data elements
+
 // Holds an encrypted value and possibly encrypted associated data.
 message EncryptedElement {
   optional bytes element = 1;
-  optional bytes associated_data = 2;
-}
-
-message EncryptedElement2 {
-  optional bytes element = 1;
   optional bytes associated_data_1 = 2;
   optional bytes associated_data_2 = 3;
-}
-
-/**************************************************************/
-//YAR:: Add : Adding a way send operator codes applied on business data
-
-/*============================================================*/
-//YAR:: Add : Multiple Column support
-//  This is a column aggregate operation 
-//  First element's operation decides for the complete column
-message EncryptedSetOp {
-  repeated EncryptedElementOp elements = 1;
-}
-
-message EncryptedElementOp{
-  optional bytes element = 1;
-  repeated ElementOp associated_data = 2;
-} 
-
-/*============================================================*/
-/*------------------------------------------------------------*/
-//YAR:: Add : Design 2: ColOp : Keep operator associated with column
-message ElementOp {
-  optional bytes data =1;
-  optional OpCode operation = 2;
-}
-
-/*------------------------------------------------------------*/
-//YAR:: Add : Design 1: OpCodeList sent independently
-//  Only looking at the distribution characteristics of one column
-//  Cross-column expressions : Future work
-message OpCodeList {
-  repeated OpCode op_list = 1;
 }
 
 /*============================================================*/
@@ -79,7 +42,57 @@ message OpCode {
   enum Operator {
     SUM = 0;
     SUMSQ = 1;
-    VAR = 2;
+    VARN = 2;
   }
   optional Operator op = 1 [default = SUM];
 }
+
+
+// // message EncryptedElement1 {
+// //   optional bytes element = 1;
+// //   optional bytes associated_data_1 = 2;
+// //   optional bytes associated_data_2 = 3;
+// //   optional bytes associated_data_3 = 4;
+// //   optional bytes associated_data_4 = 5;
+// //   optional bytes associated_data_5 = 6;
+// // }
+
+// //YAR::Edit : Extending to possibly multiple associated_data elements
+// message EncryptedElement2 {
+//   optional bytes element = 1;
+//   repeated bytes associated_data = 2;
+// }
+
+
+// /**************************************************************/
+// //YAR:: Add : Adding a way send operator codes applied on business data
+
+// /*============================================================*/
+// //YAR:: Add : Multiple Column support
+// //  This is a column aggregate operation 
+// //  First element's operation decides for the complete column
+// message EncryptedSetOp {
+//   repeated EncryptedElementOp elements = 1;
+// }
+
+// message EncryptedElementOp{
+//   optional bytes element = 1;
+//   repeated ElementOp associated_data = 2;
+// } 
+
+// /*============================================================*/
+// /*------------------------------------------------------------*/
+// //YAR:: Add : Design 2: ColOp : Keep operator associated with column
+// // message ElementOp {
+// //   optional bytes data =1;
+// //   optional OpCode operation = 2;
+// // }
+
+// /*------------------------------------------------------------*/
+// //YAR:: Add : Design 1: OpCodeList sent independently
+// //  Only looking at the distribution characteristics of one column
+// //  Cross-column expressions : Future work
+// message OpCodeList {
+//   repeated OpCode op_list = 1;
+// }
+
