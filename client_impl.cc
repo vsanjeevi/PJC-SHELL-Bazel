@@ -36,14 +36,14 @@ namespace private_join_and_compute {
 PrivateIntersectionSumProtocolClientImpl::
     PrivateIntersectionSumProtocolClientImpl(
         Context* ctx, const std::vector<std::string>& elements,
-        const std::vector<BigNum>& values, int32_t modulus_size, const std::string& op)
+        const std::vector<BigNum>& values, int32_t modulus_size, const int32_t op_1)
     : ctx_(ctx),
       elements_(elements),
       values_(values),
       p_(ctx_->GenerateSafePrime(modulus_size / 2)),
       q_(ctx_->GenerateSafePrime(modulus_size / 2)),
       intersection_sum_(ctx->Zero()),
-      op_(op),
+      op_1_(op_1),
       ec_cipher_(std::move(
           ECCommutativeCipher::CreateWithNewKey(
               NID_X9_62_prime256v1, ECCommutativeCipher::HashType::SHA256)

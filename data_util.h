@@ -57,7 +57,9 @@ static const int64_t kRandomIdentifierLengthBytes = 32;
 // int64_t.
 auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
                              int64_t intersection_size,
-                             int64_t max_associated_value)
+                             int64_t max_associated_value,
+                             int32_t operator_1,
+                             int32_t operator_2)
 //YAR:Edit - new return data type
     -> StatusOr<std::tuple<
         std::vector<std::string>,
@@ -79,7 +81,7 @@ Status WriteClientDatasetToFile(
     const std::vector<int64_t>& client_associated_values,
     absl::string_view client_data_filename);
 
-//YAR::Edit -> Extending to tuple
+// Extending to tuple
 Status WriteClientDatasetToFile(
     const std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>> client_dataset,
     absl::string_view client_data_filename); 

@@ -34,7 +34,7 @@ class PrivateIntersectionSumProtocolClientTupleImpl : public ProtocolClient {
   //Constructor using tuple instead of pair
   PrivateIntersectionSumProtocolClientTupleImpl(
       Context* ctx, const std::tuple<std::vector<std::string>, 
-      std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size,std::string op_list);
+      std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size,const int32_t op_1,const int32_t op_2);
 
 
   // Generates the StartProtocol message and sends it on the message sink.
@@ -70,6 +70,9 @@ class PrivateIntersectionSumProtocolClientTupleImpl : public ProtocolClient {
   // Extending to 2 aggregates
   const BigNum& intersection_agg_1() const { return intersection_agg_1_; }
   const BigNum& intersection_agg_2() const { return intersection_agg_2_; }
+
+  int32_t operator_1() const { return op_1_;}
+  int32_t operator_2() const { return op_2_;}
 
  
  protected:
@@ -110,7 +113,8 @@ class PrivateIntersectionSumProtocolClientTupleImpl : public ProtocolClient {
   BigNum intersection_agg_2_;
 
   //command line extension
-  std::string op_list_;
+  int32_t op_1_;
+  int32_t op_2_;
 
   std::unique_ptr<ECCommutativeCipher> ec_cipher_;
   std::unique_ptr<PrivatePaillier> private_paillier_;

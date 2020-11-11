@@ -44,7 +44,7 @@ message OpCode {
     SUMSQ = 1;
     VARN = 2;
   }
-  optional Operator op = 1 [default = SUM];
+  required Operator op = 1 [default = SUM];
 }
 
 

@@ -54,14 +54,14 @@ DEFINE_int32(
     "paillier_modulus_size/2.");
 
 //--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
-DEFINE_int32(multi_column,0,"Number of data columns avaialble for server to compute");
+DEFINE_int32(multi_column,0,"Indicates 1 or 2 columns in the Client Data Set");
 
-DEFINE_string(operator_list,"SUM","Operator list");
-//--operator_list=SUM.SUMSQ.VARN
-// if operators == # Columns : Ok
-// if operators > # Columns: Ignore extra
-// if operators < # Columns : Use default = SUM
-// If # Columns = 5 & operator_list = SUM.SUMSQ.VARN then list = sum, sumsq, varn, sum, sum
+//enumerator value sent in protocol
+DEFINE_int32(operator_1,0,"Operator One");
+DEFINE_int32(operator_2,0,"Operator Two");
+    // SUM = 0;
+    // SUMSQ = 1;
+    // VARN = 2;
 
 
 namespace private_join_and_compute {
@@ -125,14 +125,14 @@ if(std::int32_t(FLAGS_multi_column)){
   client =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientTupleImpl>(
           &context, std::move(client_identifiers_and_associated_values),
-          FLAGS_paillier_modulus_size,std::string(FLAGS_operator_list));
+          FLAGS_paillier_modulus_size,FLAGS_operator_1,FLAGS_operator_2);
 }else{
   //existing pair implementation
   client =
       absl::make_unique<::private_join_and_compute::PrivateIntersectionSumProtocolClientImpl>(
           &context, std::move(std::get<0>(client_identifiers_and_associated_values)),
           std::move(std::get<1>(client_identifiers_and_associated_values)),
-          FLAGS_paillier_modulus_size,std::string(FLAGS_operator_list));
+          FLAGS_paillier_modulus_size,FLAGS_operator_1);
 }
 
   // Consider grpc::SslServerCredentials if not running locally.

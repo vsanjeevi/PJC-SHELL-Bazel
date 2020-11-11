@@ -27,29 +27,22 @@ message EncryptedElement {
 } 
 ```
 
-2) Adding operator sequence: 
+2) Adding operator codes: 
 + match.proto
 ```c++
-//YAR:: Add : Adding a way send operator codes applied on business data
-//  Only looking at the distribution characteristics of one column
-//  Cross-column expressions : Future work
-message OpCodeList {
-  repeated OpCode op_list = 1;
-}
-
 //YAR:: Add: This depends on the homomorphic encryption used
 //  This gets applied on ONE Column only
 //  Possible : 
 //      1) sum(col) 
 //      2) sum(col^2) 
-//      3) var(col) = sum([(x-avg(col))^2])/n 
+//      3) var(col) = sum([(x-avg(col))^2])
 message OpCode {
   enum Operator {
     SUM = 0;
     SUMSQ = 1;
     VAR = 2;
   }
-  optional Operator op = 1 [default = SUM];
+  Operator op = 1 [default = SUM];
 }
 ```
 
@@ -59,15 +52,63 @@ message OpCode {
     optional bytes public_key = 1;
     optional EncryptedSet encrypted_set = 2;
     optional EncryptedSet reencrypted_set = 3;
-    optional bytes data_columns = 4;                  //extension : Number
-    optional string operator_seq = 5;                 //operator sequence : String
+    optional OpCode op_code_1 = 4;
+    optional OpCode op_code_2 = 5;
   }
+
+  message ServerRoundTwo {
+    optional int64 intersection_size = 1;
+    optional bytes encrypted_sum_1 = 2;
+    optional bytes encrypted_sum_2 = 3;
+  }  
 ```
 
 
-## Class Hierarchy design change
-+ Move from in-place edits to derivation!
-    + Will preserve pair, tuple and multiple columns implementation!
+
+# Implementation Choices
+
+## Code refactoring 
+Two client implementations:
++ client_impl : Original Code
++ client_tuple_impl : Support 2 data columns
+
+Two server implementations:
++ server_impl : Original Code
++ server_tuple_impl : Supports 2 aggregation on two data columns 
+
+Client Flags
+```c++
+DEFINE_string(port, "0.0.0.0:10501", "Port on which to contact server");
+DEFINE_string(client_data_file, "",
+              "The file from which to read the client database.");
+DEFINE_int32(
+    paillier_modulus_size, 1536,
+    "The bit-length of the modulus to use for Paillier encryption. The modulus "
+    "will be the product of two safe primes, each of size "
+    "paillier_modulus_size/2.");
+
+//--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
+DEFINE_int32(multi_column,0,"Indicates 1 or 2 columns in the Client Data Set");
+
+//enumerator value sent in protocol
+DEFINE_int32(operator_1,0,"Operator One");
+DEFINE_int32(operator_2,0,"Operator Two");
+    // SUM = 0;
+    // SUMSQ = 1;
+    // VARN = 2;
+
+```
+Server Flags
+```c++
+DEFINE_string(port, "0.0.0.0:10501", "Port on which to listen");
+DEFINE_string(server_data_file, "",
+              "The file from which to read the server database.");
+//--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
+DEFINE_int32(multi_column,0,"Indicates 1 or 2 columns in the Client Data Set");
+
+```
++ Dummy Set Generation
+Ref: https://stackoverflow.com/questions/7616511/calculate-mean-and-standard-deviation-from-a-vector-of-samples-in-c-using-boos
 
 # Bazel Build Process
 

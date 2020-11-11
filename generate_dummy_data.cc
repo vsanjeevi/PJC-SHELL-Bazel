@@ -13,6 +13,16 @@
  * limitations under the License.
  */
 
+/*
+ * Extension to generate_dummy_data for generating 2 data columns with 2 possible aggregators
+ * Author:          Yuva Athur
+ * Created Date:    Nov. 10. 2020
+ * 
+ * 
+ *
+ *  
+ */
+
 // Tool to generate dummy data for the client and server in Private Join and
 // Compute.
 
@@ -39,13 +49,25 @@ DEFINE_string(server_data_file, "",
 DEFINE_string(client_data_file, "",
               "The file to which to write the client database.");
 
+//always generate 2 columns - client read will take care!
+//--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
+//DEFINE_int32(multi_column,0,"Indicates 1 or 2 columns in the Client Data Set");
+
+//enumerator value sent in protocol
+DEFINE_int32(operator_1,0,"Operator One");
+DEFINE_int32(operator_2,0,"Operator Two");
+    // SUM = 0;
+    // SUMSQ = 1;
+    // VARN = 2;
+
+
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   auto maybe_dummy_data = private_join_and_compute::GenerateRandomDatabases(
       FLAGS_server_data_size, FLAGS_client_data_size, FLAGS_intersection_size,
-      FLAGS_max_associated_value);
+      FLAGS_max_associated_value, FLAGS_operator_1,FLAGS_operator_2);
 
   if (!maybe_dummy_data.ok()) {
     std::cerr << "GenerateDummyData: Error generating the dummy data: "
@@ -56,9 +78,8 @@ int main(int argc, char** argv) {
   auto dummy_data = std::move(maybe_dummy_data.value());
   auto& server_identifiers = std::get<0>(dummy_data);
   auto& client_identifiers_and_associated_values = std::get<1>(dummy_data);
-  int64_t intersection_sum = std::get<2>(dummy_data);
-  //YAR::Edit : Added second intersection_sum
-  int64_t intersection_sum_2 = std::get<3>(dummy_data);
+  int64_t intersection_agg_1 = std::get<2>(dummy_data);
+  int64_t intersection_agg_2 = std::get<3>(dummy_data);
 
 
   auto server_write_status = private_join_and_compute::WriteServerDatasetToFile(
@@ -69,34 +90,42 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  //YAR::Edit - Extending to tuple
+  //Extending to tuple
   auto client_write_status = private_join_and_compute::WriteClientDatasetToFile(
-      client_identifiers_and_associated_values, FLAGS_client_data_file);
+    client_identifiers_and_associated_values, FLAGS_client_data_file);
   if (!client_write_status.ok()) {
     std::cerr << "GenerateDummyData: Error writing client dataset: "
-              << client_write_status << std::endl;
+            << client_write_status << std::endl;
     return 1;
   }
-
-  /* YAR::Edit - Original code for Pair write
-  auto client_write_status = private_join_and_compute::WriteClientDatasetToFile(
-      client_identifiers_and_associated_values.first,
-      client_identifiers_and_associated_values.second, FLAGS_client_data_file);
-  if (!client_write_status.ok()) {
-    std::cerr << "GenerateDummyData: Error writing client dataset: "
-              << client_write_status << std::endl;
-    return 1;
-  }
-  */
+  
 
   std::cout << "Generated Server dataset of size " << FLAGS_client_data_size
             << ", Client dataset of size " << FLAGS_client_data_size
             << std::endl;
+  std::cout << "Passed flags passed aggregators: Operator 1 = " << FLAGS_operator_1
+            << ", Operator 2 = " << FLAGS_operator_2
+            << std::endl;
+
   std::cout << "Intersection size = " << FLAGS_intersection_size << std::endl;
-  std::cout << "Intersection sum = " << intersection_sum << std::endl;
-  //YAR::Edit
-  std::cout << "Intersection sum 2 = " << intersection_sum_2 << std::endl;
+  std::cout << "Intersection aggregate 1 = " << intersection_agg_1 << std::endl;
+  std::cout << "Intersection aggregate 2 = " << intersection_agg_2 << std::endl;
 
 
   return 0;
 }
+
+
+
+/**************************************************************/
+/*
+    auto client_write_status = private_join_and_compute::WriteClientDatasetToFile(
+      client_identifiers_and_associated_values.first,
+      client_identifiers_and_associated_values.second, FLAGS_client_data_file);
+    if (!client_write_status.ok()) {
+      std::cerr << "GenerateDummyData: Error writing client dataset: "
+              << client_write_status << std::endl;
+      return 1;
+    }
+
+*/

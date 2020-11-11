@@ -136,7 +136,9 @@ std::vector<std::string> SplitCsvLine(const std::string& line) {
 
 auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
                              int64_t intersection_size,
-                             int64_t max_associated_value)
+                             int64_t max_associated_value,
+                             int32_t operator_1 = 0,
+                             int32_t operator_2 = 0)
 //YAR:Edit - new return data type
     -> StatusOr<std::tuple<
         std::vector<std::string>,
@@ -188,7 +190,7 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
   }
   std::shuffle(server_identifiers.begin(), server_identifiers.end(), gen);
 
-  // Generate remaining random identifiers for the client.
+  // Generate remaining random identifiers for the client, and shuffle.
   std::vector<std::string> client_identifiers = common_identifiers;
   client_identifiers.reserve(client_data_size);
   for (int64_t i = intersection_size; i < client_data_size; i++) {
@@ -206,7 +208,15 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
   Context context;
   BigNum associated_values_bound = context.CreateBigNum(max_associated_value);
   client_associated_values.reserve(client_data_size);
-  int64_t intersection_sum = 0;
+
+
+  int64_t intersection_sum_1 = 0;
+  int64_t intersection_sumsq_1 = 0;
+
+  std::vector<int64_t> iv_1;
+  iv_1.reserve(intersection_size);
+
+
   for (int64_t i = 0; i < client_data_size; i++) {
     // Converting the associated value from BigNum to int64_t should never fail
     // because associated_values_bound is less than int64_t::max.
@@ -215,19 +225,39 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
             .ToIntValue()
             .value();
     client_associated_values.push_back(associated_value);
-
     if (server_identifiers_set.count(client_identifiers[i]) > 0) {
-      intersection_sum += associated_value;
+      intersection_sum_1 += associated_value;
+      intersection_sumsq_1 += (associated_value * associated_value);
+      iv_1.push_back(associated_value);
     }
   }
 
 
+  double iv_1_sum = std::accumulate(iv_1.begin(), iv_1.end(), 0.0);
+  double iv_1_sumsq = std::inner_product( iv_1.begin(), iv_1.end(), iv_1.begin(), 0 );
+
+  double iv_1_m =  iv_1_sum / iv_1.size();
+
+  double iv_1_varn = 0.0;
+  std::for_each (std::begin(iv_1), std::end(iv_1), [&](const double d) {
+      iv_1_varn += (d - iv_1_m) * (d - iv_1_m);
+  });
+
+  std::cout << "Aggregated values computed using vector algo: sum = " << iv_1_sum
+      << ", sum of squares = " << iv_1_sumsq
+      << ", mean = " << iv_1_m 
+      << ", variance numerator = " << iv_1_varn 
+      << std::endl;
+
   //YAR::Edit : Adding 2nd associated value
   std::vector<int64_t> client_associated_values_2;
-  //Context context;
-  //BigNum associated_values_bound = context.CreateBigNum(max_associated_value);
+
+  std::vector<int64_t> iv_2;
+  iv_2.reserve(intersection_size);
+
   client_associated_values_2.reserve(client_data_size);
   int64_t intersection_sum_2 = 0;
+  int64_t intersection_sumsq_2 = 0;
   for (int64_t i = 0; i < client_data_size; i++) {
     // Converting the associated value from BigNum to int64_t should never fail
     // because associated_values_bound is less than int64_t::max.
@@ -239,9 +269,44 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
 
     if (server_identifiers_set.count(client_identifiers[i]) > 0) {
       intersection_sum_2 += associated_value;
+      intersection_sumsq_2 += (associated_value * associated_value);
+      iv_2.push_back(associated_value);
     }
   }
 
+
+  double iv_2_sum = std::accumulate(iv_2.begin(), iv_2.end(), 0.0);
+  double iv_2_sumsq = std::inner_product( iv_2.begin(), iv_2.end(), iv_2.begin(), 0 );
+
+  double iv_2_m =  iv_2_sum / iv_2.size();
+
+  double iv_2_varn = 0.0;
+  std::for_each (std::begin(iv_1), std::end(iv_1), [&](const double d) {
+      iv_2_varn += (d - iv_2_m) * (d - iv_2_m);
+  });
+
+  std::cout << "Aggregated values computed using vector algo: sum = " << iv_2_sum
+      << ", sum of squares = " << iv_2_sumsq
+      << ", mean = " << iv_2_m 
+      << ", variance numerator = " << iv_2_varn 
+      << std::endl;
+
+  int64_t result_1,result_2;
+  switch(operator_1){
+    case 1: 
+      result_1 = intersection_sumsq_1;
+      break;
+    default:
+      result_1 = intersection_sum_1;
+  }
+
+  switch(operator_2){
+    case 1: 
+      result_2 = intersection_sumsq_2;
+      break;
+    default:
+      result_2 = intersection_sum_2;
+  }
 
   // Return the output.
   //YAR::Edit --> change the return value type of this function
@@ -250,8 +315,8 @@ auto GenerateRandomDatabases(int64_t server_data_size, int64_t client_data_size,
                                         std::move(client_associated_values)
                                         ,std::move(client_associated_values_2)
                                         ),
-                         intersection_sum
-                         ,intersection_sum_2
+                         result_1,
+                         result_2
                          );
 
   /* YAR::Edit :  Original return
@@ -291,7 +356,6 @@ Status WriteServerDatasetToFile(const std::vector<std::string>& server_data,
   return OkStatus();
 }
 
-//YAR::Edit : Original Pair Write --> needs to check for length of passes vectors
 Status WriteClientDatasetToFile(
     const std::vector<std::string>& client_identifiers,
     const std::vector<int64_t>& client_associated_values,
@@ -331,7 +395,7 @@ Status WriteClientDatasetToFile(
 }
 
 
-//YAR::Edit --> Extending to writing a tuple
+//YAR Extending to writing a tuple : 2 colimns
 Status WriteClientDatasetToFile(
     const std::tuple<std::vector<std::string>, std::vector<int64_t>,std::vector<int64_t>> client_dataset,
     absl::string_view client_data_filename) {

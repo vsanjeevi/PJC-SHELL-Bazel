@@ -3,6 +3,7 @@
  * Author:          Yuva Athur
  * Created Date:    Oct. 16. 2020
  * 
+ * ***** Incomplete implementation **************
  * 
  * Follows the same implementation approach as PrivateIntersectionSumProtocolClientImpl
  *  Extending to a vector of data columns

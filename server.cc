@@ -46,7 +46,7 @@ DEFINE_string(port, "0.0.0.0:10501", "Port on which to listen");
 DEFINE_string(server_data_file, "",
               "The file from which to read the server database.");
 //--mult_column : binary : 0 means 1 column (default), 1 means 2 columns
-DEFINE_int32(multi_column,0,"Number of data columns avaialble for server to compute");
+DEFINE_int32(multi_column,0,"Indicates 1 or 2 columns in the Client Data Set");
 
 
 int RunServer() {

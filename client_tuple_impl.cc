@@ -17,14 +17,15 @@ namespace private_join_and_compute {
 PrivateIntersectionSumProtocolClientTupleImpl::
     PrivateIntersectionSumProtocolClientTupleImpl(
       Context* ctx, const std::tuple<std::vector<std::string>, 
-      std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size,std::string op_list)
+      std::vector<BigNum>, std::vector<BigNum>>& table, int32_t modulus_size,const int32_t op_1,const int32_t op_2)
     :ctx_(ctx),
       table_(table),
       p_(ctx_->GenerateSafePrime(modulus_size / 2)),
       q_(ctx_->GenerateSafePrime(modulus_size / 2)),
       intersection_agg_1_(ctx->Zero()),
       intersection_agg_2_(ctx->Zero()),
-      op_list_(op_list),
+      op_1_(op_1),
+      op_2_(op_2),
       ec_cipher_(std::move(
           ECCommutativeCipher::CreateWithNewKey(
               NID_X9_62_prime256v1, ECCommutativeCipher::HashType::SHA256)
