@@ -21,9 +21,9 @@ rm -rf ~/.cache/bazel
 
 cd private-join-and-compute
 
-to test SHELL
-
 bazel build :all --cxxopt='-std=c++17'
+
+to test SHELL
 
 bazel test ... --test_timeout 300 --cxxopt='-std=c++17'
 
