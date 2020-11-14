@@ -1,3 +1,9 @@
+PJC and SHELL Integration.
+
+Tested and works fine.
+
+*********************************************
+
 # Adapting to CMPE 295 : Master's Project
 
 ## State Model between Client & Server
